@@ -1,0 +1,34 @@
+{
+    "hover_enabled": true,
+    "buttons": {
+        "button1": {
+            "enabled": true,
+            "binding": {
+                "type": "Mouse",
+                "button": "Left"
+            }
+        },
+        "button2": {
+            "enabled": false,
+            "binding": {
+                "type": "Mouse",
+                "button": "Left"
+            }
+        },
+        "button3": {
+            "enabled": true,
+            "binding": {
+                "type": "Keyboard",
+                "modifiers": "Control",
+                "key": "c"
+            }
+        }
+    },
+    "mapping": {
+        "x": 0,
+        "y": 0,
+        "width": 4133,
+        "height": 2325
+    },
+    "matrix": [1, 0, 0, 1]
+}

@@ -1,0 +1,17 @@
+{
+    "name": "CTL-472",
+    "info": {
+        "vendor": 1386,
+        "product": 890,
+        "usage": 1,
+        "usage_page": 65293,
+        "init_features": [ 2, 2 ]
+    },
+    "area": {
+        "x": 0,
+        "y": 0,
+        "width": 15200,
+        "height": 9500
+    },
+    "max_pressure": 2047
+}
