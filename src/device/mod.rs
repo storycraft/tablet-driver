@@ -9,7 +9,7 @@ use crate::tablet::Area;
 
 pub const DEVICE_CONFIG: &'static str = include_str!("device.json");
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Device {
 
     pub name: String,
@@ -21,7 +21,7 @@ pub struct Device {
 
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Info {
     
     pub vendor: u16,

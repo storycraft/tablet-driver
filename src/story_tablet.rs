@@ -10,7 +10,7 @@ use hidapi::HidApi;
 use hidapi::HidDevice;
 use hidapi::DeviceInfo;
 use enigo::{Enigo, Key, KeyboardControllable, MouseControllable};
-use crate::{device::Device, config::KeyBinding};
+use crate::{config::KeyBinding, device::Device};
 use crate::tablet::{Data, State};
 use crate::config::Config;
 
@@ -101,6 +101,8 @@ impl StoryTablet {
             println!("Driver not started");
             return;
         }
+
+        println!("Stopping");
         self.started = false;
     }
 
@@ -108,8 +110,8 @@ impl StoryTablet {
         self.config = config;
     }
 
-    pub fn get_config(&self) -> Config {
-        self.config
+    pub fn get_config(&self) -> &Config {
+        &self.config
     }
 
     fn run(&mut self) {
@@ -119,8 +121,16 @@ impl StoryTablet {
         self.device.send_feature_report(&self.device_cfg.info.init_features).expect("Cannot init features");
 
         while self.started {
-            let readed = self.device.read(&mut buffer).expect("Couldn't read data");
-            self.on_data(&buffer, readed);
+            match self.device.read(&mut buffer) {
+                Err(err) => {
+                    self.stop();
+                    println!("Error while reading data {}", err);
+                }
+
+                Ok(readed) => {
+                    self.on_data(&buffer, readed);
+                }
+            }
         }
     }
 
@@ -132,7 +142,7 @@ impl StoryTablet {
 
             KeyBinding::Keyboard { modifiers, key } => {
                 if modifiers.is_some() {
-                    self.controller.key_down(modifiers.unwrap());
+                    modifiers.clone().unwrap().iter().for_each(|modifer_key| self.controller.key_down(*modifer_key));
                 }
                 
                 if key.is_some() {
@@ -150,7 +160,7 @@ impl StoryTablet {
 
             KeyBinding::Keyboard { modifiers, key } => {
                 if modifiers.is_some() {
-                    self.controller.key_up(modifiers.unwrap());
+                    modifiers.clone().unwrap().iter().for_each(|modifer_key| self.controller.key_up(*modifer_key));
                 }
                 
                 if key.is_some() {
@@ -168,9 +178,9 @@ impl StoryTablet {
 
         //println!("{:?}", state);
 
-        if (state.inited || state.hovering) && self.config.hover_enabled {
-            let x = ((state.pos.0 as f32 - self.config.mapping.x as f32).max(0.0) / self.config.mapping.width as f32).min(1.0) * 1920_f32;
-            let y = ((state.pos.1 as f32 - self.config.mapping.y as f32).max(0.0) / self.config.mapping.height as f32).min(1.0) * 1080_f32;
+        if (state.inited || state.hovering) && self.config.hover_enabled || state.buttons[0] {
+            let x = ((state.pos.0 as f32 - self.config.mapping.x as f32).max(0.0) / self.config.mapping.width as f32).min(1.0) * self.config.screen.width as f32;
+            let y = ((state.pos.1 as f32 - self.config.mapping.y as f32).max(0.0) / self.config.mapping.height as f32).min(1.0) * self.config.screen.height as f32;
 
             let win_x = x * self.config.matrix.0 + y * self.config.matrix.1;
             let win_y = x * self.config.matrix.2 + y * self.config.matrix.3;
@@ -178,28 +188,14 @@ impl StoryTablet {
             self.controller.mouse_move_to(win_x as i32,win_y as i32);
         }
 
-        if state.button1 != self.state.button1 && self.config.buttons.button1.enabled {
-            if state.button1 {
-                self.down_key(self.config.buttons.button1.binding);
-            } else {
-                self.up_key(self.config.buttons.button1.binding);
-            }
-        }
-
-        if state.button2 != self.state.button2 && self.config.buttons.button2.enabled {
-            if state.button2 {
-                self.down_key(self.config.buttons.button2.binding);
-            } else {
-                self.up_key(self.config.buttons.button2.binding);
-            }
-            
-        }
-
-        if state.button3 != self.state.button3 && self.config.buttons.button3.enabled {
-            if state.button3 {
-                self.down_key(self.config.buttons.button3.binding);
-            } else {
-                self.up_key(self.config.buttons.button3.binding);
+        for i in 0..2 {
+            if state.buttons[i] != self.state.buttons[i] && self.config.buttons[i].enabled {
+                let binding = self.config.buttons[i].binding.clone();
+                if state.buttons[i] {
+                    self.down_key(binding);
+                } else {
+                    self.up_key(binding);
+                }
             }
         }
 

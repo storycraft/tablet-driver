@@ -10,27 +10,20 @@ use crate::tablet::Area;
 
 pub const DEFAULT_CONFIG: &'static str = include_str!("default.json");
 
-#[derive(Serialize, Deserialize, Copy, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Config {
 
     pub hover_enabled: bool,
-    pub buttons: ButtonMap,
+    pub buttons: [ButtonData; 3],
+
     pub mapping: Area,
+    pub screen: Area,
 
     pub matrix: (f32, f32, f32, f32),
 
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone)]
-pub struct ButtonMap {
-
-    pub button1: ButtonData,
-    pub button2: ButtonData,
-    pub button3: ButtonData,
-
-}
-
-#[derive(Serialize, Deserialize, Copy, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ButtonData {
 
     pub enabled: bool,
@@ -38,11 +31,11 @@ pub struct ButtonData {
 
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "type")]
 pub enum KeyBinding {
 
     Mouse { button: MouseButton },
-    Keyboard { modifiers: Option<Key>, key: Option<char> }
+    Keyboard { modifiers: Option<Vec<Key>>, key: Option<char> }
 
 }
