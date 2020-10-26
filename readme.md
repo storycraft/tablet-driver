@@ -5,7 +5,7 @@ Custom tablet driver for CTL-472
 `cargo build`
 
 ## Customizing
-Edit `src/config/default.json` and rebuild. (for now)
+Drag config file to executable.
 
 ## Spec
 | Name     | CTL-472               |
