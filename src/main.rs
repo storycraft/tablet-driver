@@ -26,8 +26,10 @@ fn main() {
 
     let device_cfg = serde_json::from_str::<device::Device>(device::DEVICE_CONFIG).expect("Cannot parse device config");
 
+    let mut api = HidApi::new().expect("Cannot create hid handle");
     loop {
-        let api = HidApi::new().expect("Cannot create hid handle");
+        api.refresh_devices().expect("Cannot update hid device list");
+        
         match StoryTablet::open_new(&api, device_cfg.clone(), config.clone()) {
             Err(TabletError::NotFound) => {
                 println!("Device not connected. Waiting...");
