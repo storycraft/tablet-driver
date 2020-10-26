@@ -14,7 +14,7 @@ pub const DEFAULT_CONFIG: &'static str = include_str!("default.json");
 pub struct Config {
 
     pub hover_enabled: bool,
-    pub buttons: [ButtonData; 3],
+    pub buttons: [KeyBinding; 3],
 
     pub mapping: Area,
     pub screen: Area,
@@ -24,17 +24,10 @@ pub struct Config {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct ButtonData {
-
-    pub enabled: bool,
-    pub binding: KeyBinding,
-
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-#[serde(tag = "type")]
+#[serde(tag = "mode")]
 pub enum KeyBinding {
 
+    Disabled,
     Mouse { button: MouseButton },
     Keyboard { modifiers: Option<Vec<Key>>, key: Option<char> }
 

@@ -2,26 +2,14 @@
     "hover_enabled": true,
     "buttons": [
         {
-            "enabled": true,
-            "binding": {
-                "type": "Mouse",
-                "button": "Left"
-            }
+            "mode": "Mouse",
+            "button": "Left"
         },
         {
-            "enabled": false,
-            "binding": {
-                "type": "Mouse",
-                "button": "Left"
-            }
+            "mode": "Disabled"
         },
         {
-            "enabled": true,
-            "binding": {
-                "type": "Keyboard",
-                "modifiers": [ "Control" ],
-                "key": "c"
-            }
+            "mode": "Disabled"
         }
     ],
     "mapping": {

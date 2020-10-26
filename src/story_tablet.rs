@@ -149,6 +149,10 @@ impl StoryTablet {
                     self.controller.key_down(Key::Layout(key.unwrap()));
                 }
             }
+
+            KeyBinding::Disabled => {
+
+            }
         }
     }
 
@@ -166,6 +170,10 @@ impl StoryTablet {
                 if key.is_some() {
                     self.controller.key_up(Key::Layout(key.unwrap()));
                 }
+            }
+
+            KeyBinding::Disabled => {
+
             }
         }
     }
@@ -189,8 +197,8 @@ impl StoryTablet {
         }
 
         for i in 0..2 {
-            if state.buttons[i] != self.state.buttons[i] && self.config.buttons[i].enabled {
-                let binding = self.config.buttons[i].binding.clone();
+            if state.buttons[i] != self.state.buttons[i] {
+                let binding = self.config.buttons[i].clone();
                 if state.buttons[i] {
                     self.down_key(binding);
                 } else {
