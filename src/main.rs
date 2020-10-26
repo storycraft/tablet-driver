@@ -44,7 +44,7 @@ fn main() {
             }
         };
 
-        thread::sleep(Duration::new(5, 0));
+        thread::sleep(Duration::new(3, 0));
     }
 }
 
