@@ -6,29 +6,25 @@
 
 extern crate hidapi;
 
-use std::sync::{Arc, Mutex, atomic::{AtomicBool, Ordering}};
+use std::sync::Arc;
 
 use hidapi::HidApi;
 use hidapi::HidDevice;
 use hidapi::DeviceInfo;
 use enigo::{Enigo, Key, KeyboardControllable, MouseControllable};
-use crate::{config::KeyBinding, device::Device};
+use crate::{config::KeyBinding, story_tablet::SharedData};
 use crate::tablet::{Data, State};
-use crate::config::Config;
 
 pub struct TabletHandler {
 
+    shared_data: Arc<SharedData>,
+
     device_info: DeviceInfo,
-    device: Arc<Device>,
 
     hid_device: HidDevice,
 
-    config: Arc<Mutex<Config>>,
-
     state: State,
     controller: Enigo,
-
-    started: Arc<AtomicBool>
 
 }
 
@@ -42,7 +38,9 @@ pub enum TabletError {
 
 impl TabletHandler {
 
-    pub fn start_new(hid_api: &HidApi, device: Arc<Device>, config: Arc<Mutex<Config>>, started: Arc<AtomicBool>) -> Result<Self, TabletError> {
+    pub fn start_new(hid_api: &HidApi, shared_data: Arc<SharedData>) -> Result<Self, TabletError> {
+
+        let device = shared_data.device();
 
         let hid_device = hid_api.device_list().filter(
             |item| 
@@ -61,17 +59,13 @@ impl TabletHandler {
 
                     Ok(hid_device) => {
                         let mut handler = Self {
+                            shared_data,
                             device_info: device_info.clone(),
 
                             hid_device,
-                            device,
-
-                            config,
 
                             state: Default::default(),
                             controller: Enigo::new(),
-
-                            started
                         };
 
                         handler.start();
@@ -102,9 +96,9 @@ impl TabletHandler {
     fn run(&mut self) {
         let mut buffer = [0_u8; 11];
         // setup tablet
-        self.hid_device.send_feature_report(&self.device.info.init_features).expect("Cannot init features");
+        self.hid_device.send_feature_report(&self.shared_data.device().info.init_features).expect("Cannot init features");
 
-        while self.started.load(Ordering::Relaxed) {
+        while self.shared_data.is_started() {
             match self.hid_device.read(&mut buffer) {
                 Err(err) => {
                     self.stop();
@@ -163,14 +157,14 @@ impl TabletHandler {
     }
 
     fn on_data(&mut self, buffer: &[u8; 11], _: usize) {
-        if buffer[0] != self.device.info.init_features[0] { return; }
+        if buffer[0] != self.shared_data.device().info.init_features[0] { return; }
 
         let data = bincode::deserialize::<Data>(buffer).expect("Cannot read data");
         let state = State::from_data(data);
 
         //println!("{:?}", state);
         
-        let config = self.config.lock().unwrap().clone();
+        let config = self.shared_data.get_config().clone();
 
         if (state.inited || state.hovering) && config.hover_enabled || state.buttons[0] {
             let x = ((state.pos.0 as f32 - config.mapping.x as f32).max(0.0) / config.mapping.width as f32).min(1.0) * config.screen.width as f32;

@@ -7,7 +7,11 @@
 extern crate hidapi;
 extern crate enigo;
 
-use std::{env, fs::File, io::Read, sync::{Arc, atomic::AtomicBool, Mutex}, thread::JoinHandle, sync::atomic::Ordering, thread, time::Duration};
+pub mod shared_data;
+
+pub use shared_data::SharedData;
+
+use std::{fs::File, io::Read, sync::Arc, thread::JoinHandle, thread, time::Duration};
 
 use hidapi::HidApi;
 use serde_json;
@@ -21,11 +25,7 @@ pub enum StoryTabletError {
 }
 pub struct StoryTablet {
 
-    started: Arc<AtomicBool>,
-    auto_restart: Arc<AtomicBool>,
-
-    device: Arc<device::Device>,
-    config: Arc<Mutex<config::Config>>,
+    shared: Arc<SharedData>,
 
     input_handle: Option<JoinHandle<()>>
 
@@ -35,11 +35,7 @@ impl StoryTablet {
 
     pub fn new(device: device::Device, config_arg: Option<String>, auto_restart: bool) -> Self {
         Self {
-            started: Arc::new(AtomicBool::new(false)),
-            auto_restart: Arc::new(AtomicBool::new(auto_restart)),
-
-            device: Arc::new(device),
-            config: Arc::new(Mutex::new(Self::load_config(config_arg))),
+            shared: Arc::new(SharedData::new(false, auto_restart, device, Self::load_config(config_arg))),
 
             input_handle: None
         }
@@ -68,20 +64,18 @@ impl StoryTablet {
     }
     
     fn create_handle<F>(&self, func: F) -> JoinHandle<()>
-    where F: Fn(Arc<device::Device>, Arc<Mutex<config::Config>>, Arc<AtomicBool>, Arc<AtomicBool>), F: Send + 'static {
-        let handle_device = Arc::clone(&self.device);
-        let handle_config = Arc::clone(&self.config);
-        let handle_started = Arc::clone(&self.started);
-        let handle_auto_restart = Arc::clone(&self.auto_restart);
+    where F: Fn(Arc<SharedData>), F: Send + 'static {
+        let handle_shared = Arc::clone(&self.shared);
     
-        thread::spawn(move || func(handle_device, handle_config, handle_started, handle_auto_restart))
+        thread::spawn(move || func(handle_shared))
     }
 
     pub fn start(mut self) -> Result<(), StoryTabletError> {
-        if self.started.load(Ordering::Relaxed) {
-            return Err(StoryTabletError::AlreadyStarted);
+        let res = self.shared.start();
+
+        if res.is_err() {
+            return res;
         }
-        self.started.store(true, Ordering::Relaxed);
 
         let tablet_handle = self.create_handle(input_task);
         println!("Input thread started. Id: {:?}", tablet_handle.thread().id());
@@ -90,7 +84,7 @@ impl StoryTablet {
 
         println!("Driver started");
 
-        while self.started.load(Ordering::Relaxed) {
+        while self.shared.is_started() {
             thread::sleep(Duration::from_secs(16));
         }
 
@@ -98,10 +92,11 @@ impl StoryTablet {
     }
 
     fn do_stop(self) -> Result<(), StoryTabletError> {
-        if !self.started.load(Ordering::Relaxed) {
-            return Err(StoryTabletError::NotStarted)
+        let res = self.shared.stop();
+        
+        if res.is_err() {
+            return res;
         }
-        self.started.store(false, Ordering::Relaxed);
 
         if self.input_handle.is_some() {
             match self.input_handle.unwrap().join() {
@@ -120,24 +115,24 @@ impl StoryTablet {
         Ok(())
     }
 
-    pub fn stop(&self) {
-        self.started.store(false, Ordering::Relaxed);
+    pub fn stop(&self) -> Result<(), StoryTabletError> {
+        self.shared.stop()
     }
 
-    pub fn started(&self) -> bool {
-        self.started.load(Ordering::Relaxed)
+    pub fn is_started(&self) -> bool {
+        self.shared.is_started()
     }
 }
 
-fn input_task(device: Arc<device::Device>, config: Arc<Mutex<config::Config>>, started: Arc<AtomicBool>, auto_restart: Arc<AtomicBool>) {
+fn input_task(shared_data: Arc<SharedData>) {
     let mut api = HidApi::new().expect("Cannot create hid handle");
 
-    while started.load(Ordering::Relaxed) {
+    while shared_data.is_started() {
         api.refresh_devices().expect("Cannot update hid device list");
 
-        let auto_restart = auto_restart.load(Ordering::Relaxed);
+        let auto_restart = shared_data.should_auto_restart();
         
-        match TabletHandler::start_new(&api, Arc::clone(&device), Arc::clone(&config), Arc::clone(&started)) {
+        match TabletHandler::start_new(&api, Arc::clone(&shared_data)) {
             Err(TabletError::NotFound) => {
                 if auto_restart {
                     println!("Device not connected. Waiting...");
@@ -161,8 +156,8 @@ fn input_task(device: Arc<device::Device>, config: Arc<Mutex<config::Config>>, s
             }
         };
 
-        if !auto_restart {
-            started.store(false, Ordering::Relaxed);
+        if !auto_restart && !shared_data.is_started() {
+            shared_data.stop();
             break;
         }
 
