@@ -90,7 +90,9 @@ impl StoryTablet {
 
         println!("Driver started");
 
-        while self.started.load(Ordering::Relaxed) {};
+        while self.started.load(Ordering::Relaxed) {
+            thread::sleep(Duration::from_secs(16));
+        }
 
         self.do_stop()
     }
