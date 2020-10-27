@@ -156,9 +156,14 @@ fn input_task(shared_data: Arc<SharedData>) {
             }
         };
 
-        if !auto_restart && !shared_data.is_started() {
-            shared_data.stop();
-            break;
+        if !auto_restart {
+            match shared_data.stop() {
+                Ok(_) => {
+                    break;
+                }
+
+                Err(_) => {}
+            }
         }
 
         thread::sleep(Duration::new(3, 0));

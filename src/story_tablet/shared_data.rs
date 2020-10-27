@@ -72,4 +72,8 @@ impl SharedData {
         self.config.lock().unwrap()
     }
 
+    pub fn set_config(&mut self, config: config::Config) {
+        self.config = Mutex::new(config);
+    }
+
 }
