@@ -6,6 +6,8 @@
 
 extern crate hidapi;
 
+use std::sync::{Arc, Mutex, atomic::{AtomicBool, Ordering}};
+
 use hidapi::HidApi;
 use hidapi::HidDevice;
 use hidapi::DeviceInfo;
@@ -14,19 +16,19 @@ use crate::{config::KeyBinding, device::Device};
 use crate::tablet::{Data, State};
 use crate::config::Config;
 
-pub struct StoryTablet {
+pub struct TabletHandler {
 
     device_info: DeviceInfo,
-    device_cfg: Device,
+    device: Arc<Device>,
 
-    device: HidDevice,
+    hid_device: HidDevice,
 
-    config: Config,
+    config: Arc<Mutex<Config>>,
 
     state: State,
     controller: Enigo,
 
-    started: bool
+    started: Arc<AtomicBool>
 
 }
 
@@ -38,39 +40,42 @@ pub enum TabletError {
 
 }
 
-impl StoryTablet {
+impl TabletHandler {
 
-    pub fn open_new(hid_api: &HidApi, device_cfg: Device, config: Config) -> Result<Self, TabletError> {
+    pub fn start_new(hid_api: &HidApi, device: Arc<Device>, config: Arc<Mutex<Config>>, started: Arc<AtomicBool>) -> Result<Self, TabletError> {
 
-        let device = hid_api.device_list().filter(
+        let hid_device = hid_api.device_list().filter(
             |item| 
-            item.vendor_id() == device_cfg.info.vendor &&
-            item.product_id() == device_cfg.info.product &&
-            item.usage() == device_cfg.info.usage &&
-            item.usage_page() == device_cfg.info.usage_page
+            item.vendor_id() == device.info.vendor &&
+            item.product_id() == device.info.product &&
+            item.usage() == device.info.usage &&
+            item.usage_page() == device.info.usage_page
         ).next();
 
-        match device {
+        match hid_device {
             None => { Err(TabletError::NotFound) },
 
             Some(device_info) => {
                 match device_info.open_device(hid_api) {
                     Err(_) => { Err(TabletError::InvalidAccess) }
 
-                    Ok(device) => {
-                        Ok(Self {
+                    Ok(hid_device) => {
+                        let mut handler = Self {
                             device_info: device_info.clone(),
 
+                            hid_device,
                             device,
-                            device_cfg,
 
                             config,
 
                             state: Default::default(),
                             controller: Enigo::new(),
 
-                            started: false
-                        })
+                            started
+                        };
+
+                        handler.start();
+                        Ok(handler)
                     }
                 }
             }
@@ -79,14 +84,8 @@ impl StoryTablet {
         
     }
 
-    pub fn start(&mut self) {
-        if self.started {
-            println!("Driver already started");
-            return;
-        }
-        self.started = true;
-
-        println!("Driver started");
+    fn start(&mut self) {
+        println!("Tablet started");
         println!("Connected to {} {} {}",
             self.device_info.manufacturer_string().unwrap_or("Unknown"),
             self.device_info.product_string().unwrap_or("Unknown"),
@@ -96,32 +95,17 @@ impl StoryTablet {
         self.run()
     }
 
-    pub fn stop(&mut self) {
-        if !self.started {
-            println!("Driver not started");
-            return;
-        }
-
+    fn stop(&mut self) {
         println!("Stopping");
-        self.started = false;
-    }
-
-    pub fn set_config(&mut self, config: Config) {
-        self.config = config;
-    }
-
-    pub fn get_config(&self) -> &Config {
-        &self.config
     }
 
     fn run(&mut self) {
         let mut buffer = [0_u8; 11];
-
         // setup tablet
-        self.device.send_feature_report(&self.device_cfg.info.init_features).expect("Cannot init features");
+        self.hid_device.send_feature_report(&self.device.info.init_features).expect("Cannot init features");
 
-        while self.started {
-            match self.device.read(&mut buffer) {
+        while self.started.load(Ordering::Relaxed) {
+            match self.hid_device.read(&mut buffer) {
                 Err(err) => {
                     self.stop();
                     println!("Error while reading data {}", err);
@@ -179,26 +163,28 @@ impl StoryTablet {
     }
 
     fn on_data(&mut self, buffer: &[u8; 11], _: usize) {
-        if buffer[0] != self.device_cfg.info.init_features[0] { return; }
+        if buffer[0] != self.device.info.init_features[0] { return; }
 
         let data = bincode::deserialize::<Data>(buffer).expect("Cannot read data");
         let state = State::from_data(data);
 
         //println!("{:?}", state);
+        
+        let config = self.config.lock().unwrap().clone();
 
-        if (state.inited || state.hovering) && self.config.hover_enabled || state.buttons[0] {
-            let x = ((state.pos.0 as f32 - self.config.mapping.x as f32).max(0.0) / self.config.mapping.width as f32).min(1.0) * self.config.screen.width as f32;
-            let y = ((state.pos.1 as f32 - self.config.mapping.y as f32).max(0.0) / self.config.mapping.height as f32).min(1.0) * self.config.screen.height as f32;
+        if (state.inited || state.hovering) && config.hover_enabled || state.buttons[0] {
+            let x = ((state.pos.0 as f32 - config.mapping.x as f32).max(0.0) / config.mapping.width as f32).min(1.0) * config.screen.width as f32;
+            let y = ((state.pos.1 as f32 - config.mapping.y as f32).max(0.0) / config.mapping.height as f32).min(1.0) * config.screen.height as f32;
 
-            let win_x = x * self.config.matrix.0 + y * self.config.matrix.1;
-            let win_y = x * self.config.matrix.2 + y * self.config.matrix.3;
+            let win_x = x * config.matrix.0 + y * config.matrix.1;
+            let win_y = x * config.matrix.2 + y * config.matrix.3;
 
             self.controller.mouse_move_to(win_x as i32,win_y as i32);
         }
 
         for i in 0..2 {
             if state.buttons[i] != self.state.buttons[i] {
-                let binding = self.config.buttons[i].clone();
+                let binding = config.buttons[i].clone();
                 if state.buttons[i] {
                     self.down_key(binding);
                 } else {

@@ -1,0 +1,100 @@
+header {
+    display: inline;
+}
+
+.title-text {
+    font-size: 1.5rem;
+    color: rgb(33, 33, 33);
+}
+
+.title-author {
+    font-size: 1rem;
+    color: rgb(80, 80, 80);
+}
+
+.header-menu {
+    padding: 1rem 1rem;
+    background: rgb(190, 190, 190);
+}
+
+.editor-wrapper {
+    width: auto;
+    height: auto;
+    
+    padding: 0.5rem 0px;
+}
+
+.area-box-field {
+    border: 0.1rem solid rgba(80, 80, 80, 0.75);
+
+    width: 64rem;
+    height: 40rem;
+
+    margin: 0px auto;
+}
+
+.area-box {
+    border: 0.1rem solid rgb(133, 64, 223);
+    background: rgb(135, 68, 223);
+
+    position: absolute;
+
+    vertical-align: middle;
+
+    /* test */
+    width: 300px;
+    height: 200px;
+}
+
+.area-text-wrapper {
+    
+}
+
+.area-text {
+    margin: 0rem 0rem;
+    
+    text-align: center;
+    color: rgb(225, 225, 225);
+
+    font-size: 2rem;
+}
+
+.settings-wrapper {
+    display: block;
+    padding: 1.7rem 1.7rem;
+}
+
+.settings-element-wrapper > * {
+    display: block;
+    margin: 0.5rem auto;
+}
+
+.settings-box {
+    display: inline-block;
+    width: 20rem;
+    height: auto;
+
+    margin: 0.2rem 0.8rem;
+    padding: 0.5rem 0.5rem;
+
+    border-radius: 0.5rem;
+    background-color: rgba(0, 0, 0, .08);
+}
+
+.settings-title {
+    color: rgb(33, 33, 33);
+    font-size: 1.3rem;
+    font-weight: bold;
+    text-align: center;
+
+    margin: 1rem auto;
+}
+
+.pretty-checkbox-wrapper {
+    margin: 0.5rem 0rem 0rem 0rem;
+}
+
+.pretty-checkbox-text {
+    font-size: 1rem;
+    color: rgb(33, 33, 33);
+}

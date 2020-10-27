@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="user-scalable=no, initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0, width=device-width">
+
+        <title>Tablet configurator</title>
+
+        <link type="text/css" rel="stylesheet" href="css/theme.css">
+        <link type="text/css" rel="stylesheet" href="css/extra.css">
+        <script async src="js/editor.js"></script>
+    </head>
+
+    <body style="position: absolute; top: 0px;">
+        <header id="menuBar" onmousedown="return false;">
+            <div id="menuWrapper" class="header-menu">
+                <span class=title-text>Tablet driver configurator</span>
+                <span class=title-author>by storycraft</span>
+            </div>
+        </header>
+        <div id="editorWrapper" class="editor-wrapper">
+            <div id="areaBoxField" class="area-box-field">
+                <div id="areaBox" class="area-box">
+                    <div id="areaTextWrapper" class="area-text-wrapper">
+                        <p id="areaText" class="area-text">Tablet area</p>
+                    </div>
+                </div>
+            </div>
+            <div id="settingsWrapper" class="settings-wrapper">
+                <div id="posBox" class="settings-box">
+                    <p class="settings-title">Position</p>
+                    <div id="posSettingsWrapper" class="settings-element-wrapper">
+                        <input id="xSettingsBox" placeholder="X"></input>
+                        <input id="ySettingsBox" placeholder="Y"></input>
+                    </div>
+                </div>
+                <div id="sizeBox" class="settings-box">
+                    <p class="settings-title">Size</p>
+                    <div id="sizeSettingsWrapper" class="settings-element-wrapper">
+                        <input id="widthSettingsBox" placeholder="Width"></input>
+                        <input id="heightSettingsBox" placeholder="Height"></input>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <footer id="exportBar" style="z-index: 10;">
+            <div id="inputWrapper">
+                <input id="configNameBox" placeholder="Config name" value="config.json"></input>
+                <button id="downloadBtn">Export</button>
+            </div>
+            <div id="prettyBoxWrapper" class="pretty-checkbox-wrapper">
+                <input id="prettyCheckbox" type="checkbox" checked=true></input>
+                <span class="pretty-checkbox-text">Pretty json</span>
+            </div>
+        </footer>
+    </body>
+</html>
