@@ -97,7 +97,7 @@ impl StoryTablet {
 
         while self.started.load(Ordering::Relaxed) {};
 
-        self.stop()
+        self.do_stop()
     }
 
     fn do_stop(self) -> Result<(), StoryTabletError> {
