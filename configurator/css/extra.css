@@ -1,36 +1,71 @@
-header {
-    display: inline;
+footer {
+    display: flex;
 }
 
 .title-text {
-    font-size: 1.5rem;
+    font-size: 2rem;
     color: rgb(33, 33, 33);
 }
 
 .title-author {
-    font-size: 1rem;
+    font-size: 1.2rem;
     color: rgb(80, 80, 80);
 }
 
-.header-menu {
-    padding: 1rem 1rem;
-    background: rgb(190, 190, 190);
+.menu {
+    display: block;
+
+    position: absolute;
+    right: 0px;
+
+    margin: 0.5rem 0.5rem;
+    padding: 0.5rem 0.5rem;
+
+    border: 0.1rem solid rgb(131, 71, 209);
+    border-radius: 0.2rem;
+}
+
+.title-wrapper {
+    display: inline;
+
+    margin: 1rem 0px;
+}
+
+.item-wrapper {
+    display: flex;
+}
+
+.export-wrapper {
+    display: inline;
+}
+
+.export-btn {
+    margin: 0.2rem 0px;
 }
 
 .editor-wrapper {
     width: auto;
     height: auto;
     
-    padding: 0.5rem 0px;
+    padding: 0.5rem 0px 0px 0px;
+}
+
+.area-box-wrapper {
+
+    display: flex;
+
+    width: 100%;
+    height: 62.5%;
+
 }
 
 .area-box-field {
     border: 0.1rem solid rgba(80, 80, 80, 0.75);
 
-    width: 64rem;
-    height: 40rem;
-
     margin: 0px auto;
+
+    width: 58rem;
+    height: 36.25rem;
 }
 
 .area-box {
@@ -39,19 +74,20 @@ header {
 
     position: absolute;
 
-    vertical-align: middle;
-
     /* test */
     width: 300px;
     height: 200px;
 }
 
 .area-text-wrapper {
-    
+    display: flex;
+
+    width: 100%;
+    height: 100%;
 }
 
 .area-text {
-    margin: 0rem 0rem;
+    margin: auto auto;
     
     text-align: center;
     color: rgb(225, 225, 225);
@@ -60,8 +96,9 @@ header {
 }
 
 .settings-wrapper {
-    display: block;
-    padding: 1.7rem 1.7rem;
+    display: inline-flex;
+
+    padding: 1.3rem 0.5rem 0px 0.5rem;
 }
 
 .settings-element-wrapper > * {
@@ -70,7 +107,8 @@ header {
 }
 
 .settings-box {
-    display: inline-block;
+    display: block;
+
     width: 20rem;
     height: auto;
 
@@ -86,8 +124,6 @@ header {
     font-size: 1.3rem;
     font-weight: bold;
     text-align: center;
-
-    margin: 1rem auto;
 }
 
 .pretty-checkbox-wrapper {

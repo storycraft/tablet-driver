@@ -12,17 +12,13 @@
     </head>
 
     <body style="position: absolute; top: 0px;">
-        <header id="menuBar" onmousedown="return false;">
-            <div id="menuWrapper" class="header-menu">
-                <span class=title-text>Tablet driver configurator</span>
-                <span class=title-author>by storycraft</span>
-            </div>
-        </header>
         <div id="editorWrapper" class="editor-wrapper">
-            <div id="areaBoxField" class="area-box-field">
-                <div id="areaBox" class="area-box">
-                    <div id="areaTextWrapper" class="area-text-wrapper">
-                        <p id="areaText" class="area-text">Tablet area</p>
+            <div id="areaBoxWrapper" class="area-box-wrapper">
+                <div id="areaBoxField" class="area-box-field">
+                    <div id="areaBox" class="area-box">
+                        <div id="areaTextWrapper" class="area-text-wrapper">
+                            <p id="areaText" class="area-text">3 : 2</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -41,16 +37,48 @@
                         <input id="heightSettingsBox" placeholder="Height"></input>
                     </div>
                 </div>
+                <div id="button1Box" class="settings-box">
+                    <p class="settings-title">Button1</p>
+                    <div id="sizeSettingsWrapper" class="settings-element-wrapper">
+                        <input id="widthSettingsBox" placeholder="Width"></input>
+                        <input id="heightSettingsBox" placeholder="Height"></input>
+                    </div>
+                </div>
+                <div id="button2Box" class="settings-box">
+                    <p class="settings-title">Button2</p>
+                    <div id="sizeSettingsWrapper" class="settings-element-wrapper">
+                        <input id="widthSettingsBox" placeholder="Width"></input>
+                        <input id="heightSettingsBox" placeholder="Height"></input>
+                    </div>
+                </div>
+                <div id="button3Box" class="settings-box">
+                    <p class="settings-title">Button3</p>
+                    <div id="sizeSettingsWrapper" class="settings-element-wrapper">
+                        <input id="widthSettingsBox" placeholder="Width"></input>
+                        <input id="heightSettingsBox" placeholder="Height"></input>
+                    </div>
+                </div>
             </div>
         </div>
-        <footer id="exportBar" style="z-index: 10;">
-            <div id="inputWrapper">
-                <input id="configNameBox" placeholder="Config name" value="config.json"></input>
-                <button id="downloadBtn">Export</button>
-            </div>
-            <div id="prettyBoxWrapper" class="pretty-checkbox-wrapper">
-                <input id="prettyCheckbox" type="checkbox" checked=true></input>
-                <span class="pretty-checkbox-text">Pretty json</span>
+        <footer id="menuBar">
+            <div id="menuWrapper" class="menu">
+                <div id="titleWrapper" class="title-wrapper">
+                    <span class=title-text>Tablet driver configurator</span>
+                <span class=title-author>by storycraft</span>
+                </div>
+                <div id="itemWrapper" class="item-wrapper">
+
+                </div>
+                <div id="exportWrapper" class="export-wrapper">
+                    <div id="inputWrapper">
+                        <input id="configNameBox" placeholder="Config name" value="config.json"></input>
+                        <button id="downloadBtn" class="export-btn">Export</button>
+                    </div>
+                    <div id="prettyBoxWrapper" class="pretty-checkbox-wrapper">
+                        <input id="prettyCheckbox" type="checkbox" checked=true></input>
+                        <span class="pretty-checkbox-text">Pretty json</span>
+                    </div>
+                </div>
             </div>
         </footer>
     </body>

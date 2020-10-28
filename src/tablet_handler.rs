@@ -101,8 +101,8 @@ impl TabletHandler {
         while self.shared_data.is_started() {
             match self.hid_device.read(&mut buffer) {
                 Err(err) => {
-                    self.stop();
                     println!("Error while reading data {}", err);
+                    return self.stop();
                 }
 
                 Ok(readed) => {

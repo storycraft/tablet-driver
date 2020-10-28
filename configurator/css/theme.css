@@ -20,7 +20,7 @@ body {
 /*
  * Disable ugly cursor
  */
-span {
+span, p {
     cursor: default;
 }
 
@@ -58,22 +58,4 @@ button {
 button:hover {
     background: rgb(65, 110, 255);
     transition: background 300ms;
-}
-
-header {
-    width: 100%;
-}
-
-footer {
-    padding: 0.8rem 0.8rem;
-    margin: 0.5rem 0.5rem;
-
-    border: 0.1rem solid rgb(131, 71, 209);
-
-    border-radius: 5px;
-
-    position: absolute;
-
-    bottom: 0px;
-    right: 0px;
 }
