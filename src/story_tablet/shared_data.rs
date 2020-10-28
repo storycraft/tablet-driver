@@ -41,7 +41,7 @@ impl SharedData {
     }
 
     pub fn start(&self) -> Result<(), StoryTabletError>{
-        if !self.started.compare_and_swap(false, true, Ordering::Relaxed) {
+        if self.started.compare_and_swap(false, true, Ordering::Relaxed) {
             return Err(StoryTabletError::AlreadyStarted);
         }
 
