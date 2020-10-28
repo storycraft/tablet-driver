@@ -102,7 +102,7 @@ impl TabletHandler {
             match self.hid_device.read(&mut buffer) {
                 Err(err) => {
                     println!("Error while reading data {}", err);
-                    return self.stop();
+                    break;
                 }
 
                 Ok(readed) => {
@@ -110,6 +110,8 @@ impl TabletHandler {
                 }
             }
         }
+
+        self.stop();
     }
 
     fn down_key(&mut self, binding: KeyBinding) {
