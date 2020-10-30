@@ -14,9 +14,9 @@
     ],
     "mapping": {
         "x": 0,
-        "y": 0,
-        "width": 4133,
-        "height": 2325
+        "y": 1200,
+        "width": 9600,
+        "height": 5400
     },
     "screen": {
         "x": 0,

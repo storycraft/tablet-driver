@@ -9,163 +9,102 @@ extern crate enigo;
 
 pub mod shared_data;
 
+use raw_sync::events::{Event, EventInit, EventState};
 pub use shared_data::SharedData;
+use shared_memory::{Shmem, ShmemConf, ShmemError};
 
-use std::{fs::File, io::Read, sync::Arc, thread::JoinHandle, thread, time::Duration};
+use std::{sync::Arc, thread::JoinHandle, sync::Mutex, thread, time::Duration};
 
-use hidapi::HidApi;
-use serde_json;
-use crate::{device, config, tablet_handler::{TabletHandler, TabletError}};
+use crate::{config::Config, device, tablet_handler::TabletHandler};
 
 #[derive(Debug)]
 pub enum StoryTabletError {
 
     NotStarted, AlreadyStarted,
+    InstanceConflict(ShmemError)
 
 }
 pub struct StoryTablet {
 
+    name: &'static str,
+
+    shared_mem: Shmem,
+
+    started: bool,
     shared: Arc<SharedData>,
 
-    input_handle: Option<JoinHandle<()>>
+    tablet_handler: Arc<Mutex<TabletHandler>>
 
 }
 
 impl StoryTablet {
 
-    pub fn new(device: device::Device, config_arg: Option<String>, auto_restart: bool) -> Self {
-        Self {
-            shared: Arc::new(SharedData::new(false, auto_restart, device, Self::load_config(config_arg))),
-
-            input_handle: None
+    pub fn new(name: &'static str,device: device::Device, config: Config) -> Result<Self, StoryTabletError> {
+        let shared_data = Arc::new(SharedData::new(device, config));
+        let shared_mem = ShmemConf::new().size(4096).flink(name).create();
+        if shared_mem.is_err() {
+            return Err(StoryTabletError::InstanceConflict(shared_mem.err().unwrap()))
         }
-    }
 
-    fn load_config(config_arg: Option<String>) -> config::Config {
-        if config_arg.is_some() {
-            let config_arg = config_arg.unwrap();
-    
-            let mut file = File::open(&config_arg).expect("Cannot find config file");
-            let mut contents = String::new();
-    
-            if file.metadata().unwrap().len() > 1048576 {
-                println!("Config file is too big");
-                return Self::load_config(None);
-            }
-    
-            println!("Using {} as config", config_arg);
-            file.read_to_string(&mut contents).expect("Cannot read file");
-    
-            serde_json::from_str::<config::Config>(contents.as_str()).expect("Cannot parse config")
-        } else {
-            println!("Config not supplied. Proceeding with default");
-            serde_json::from_str::<config::Config>(config::DEFAULT_CONFIG).expect("Cannot parse config")
-        }
+        Ok(Self {
+            name,
+            shared_mem: shared_mem.unwrap(),
+            started: false,
+            shared: Arc::clone(&shared_data),
+
+            tablet_handler: Arc::new(Mutex::new(TabletHandler::new(Arc::clone(&shared_data))))
+        })
     }
     
     fn create_handle<F>(&self, func: F) -> JoinHandle<()>
-    where F: Fn(Arc<SharedData>), F: Send + 'static {
-        let handle_shared = Arc::clone(&self.shared);
-    
-        thread::spawn(move || func(handle_shared))
+    where F: Fn(), F: Send + 'static {
+        thread::spawn(move || func())
     }
 
     pub fn start(mut self) -> Result<(), StoryTabletError> {
-        let res = self.shared.start();
-
-        if res.is_err() {
-            return res;
+        if self.started {
+            return Err(StoryTabletError::AlreadyStarted);
         }
+        self.started = true;
 
-        let tablet_handle = self.create_handle(input_task);
-        println!("Input thread started. Id: {:?}", tablet_handle.thread().id());
-
-        self.input_handle = Some(tablet_handle);
+        let inner_handler = Arc::clone(&self.tablet_handler);
+        let input_handle = self.create_handle(move || {
+            inner_handler.lock().unwrap().start();
+        });
+        println!("Input thread started. Id: {:?}", input_handle.thread().id());
 
         println!("Driver started");
 
-        while self.shared.is_started() {
-            thread::sleep(Duration::from_secs(16));
+        while self.started {
+            let (e, used_bytes) = unsafe { Event::from_existing(self.shared_mem.as_ptr()).unwrap() };
+            thread::sleep(Duration::from_millis(1));
+
+            e.set(EventState::Signaled).expect("Cannot signal event");
         }
 
-        self.do_stop()
+        let mut tablet_handler = self.tablet_handler.lock().unwrap();
+        if tablet_handler.running() {
+            tablet_handler.stop();
+        }
+        input_handle.join().expect("Input thread already killed");
+
+        Ok(())
     }
 
-    fn do_stop(self) -> Result<(), StoryTabletError> {
-        let res = self.shared.stop();
-        
-        if res.is_err() {
-            return res;
+    pub fn stop(&mut self) -> Result<(), StoryTabletError> {
+        if !self.started {
+            return Err(StoryTabletError::NotStarted);
         }
-
-        if self.input_handle.is_some() {
-            match self.input_handle.unwrap().join() {
-                Ok(_) => {
-                    println!("Input handler stopped")
-                }
-
-                Err(err) => {
-                    println!("Error while stopping input thread {:?}", err);
-                }
-            }
-        } else {
-            println!("Input handler does not exists?!")
-        }
+        self.started = false;
         
         Ok(())
     }
 
-    pub fn stop(&self) -> Result<(), StoryTabletError> {
-        self.shared.stop()
+    pub fn started(&self) -> bool {
+        self.started
     }
 
-    pub fn is_started(&self) -> bool {
-        self.shared.is_started()
-    }
-}
-
-fn input_task(shared_data: Arc<SharedData>) {
-    let mut api = HidApi::new().expect("Cannot create hid handle");
-
-    while shared_data.is_started() {
-        api.refresh_devices().expect("Cannot update hid device list");
-
-        let auto_restart = shared_data.should_auto_restart();
-        
-        match TabletHandler::start_new(&api, Arc::clone(&shared_data)) {
-            Err(TabletError::NotFound) => {
-                if auto_restart {
-                    println!("Device not connected. Waiting...");
-                } else {
-                    println!("Device not connected!!");
-                }
-                
-            }
-    
-            Err(err) => {
-                if auto_restart {
-                    println!("Device read error: {:?}", err);
-                } else {
-                    println!("Error while reading device: {:?}", err);
-                }
-                
-            }
-    
-            Ok(_) => {
-                
-            }
-        };
-
-        if !auto_restart {
-            match shared_data.stop() {
-                Ok(_) => {
-                    break;
-                }
-
-                Err(_) => {}
-            }
-        }
-
-        thread::sleep(Duration::new(3, 0));
+    pub fn name(&self) -> &'static str {
+        self.name
     }
 }
