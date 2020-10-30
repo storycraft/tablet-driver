@@ -39,11 +39,14 @@ pub struct StoryTablet {
 
 impl StoryTablet {
 
-    pub fn new(name: &'static str,device: device::Device, config: Config) -> Result<Self, StoryTabletError> {
+    pub fn new(name: &'static str, device: device::Device, config: Config) -> Result<Self, StoryTabletError> {
         let shared_data = Arc::new(SharedData::new(device, config));
-        let shared_mem = match ShmemConf::new().size(4096).flink(name).create() {
+
+        let shared_mem_name = vec![name.to_string(), ".lock".to_string()].join("");
+
+        let shared_mem = match ShmemConf::new().size(4096).flink(&shared_mem_name).create() {
             Err(ShmemError::LinkExists) => {
-                match ShmemConf::new().size(4096).flink(name).open() {
+                match ShmemConf::new().size(4096).flink(&shared_mem_name).open() {
                     Err(err) => { Err(StoryTabletError::InstanceConflict(err)) }
                     Ok(res) => { Ok(res) }
                 }
