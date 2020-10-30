@@ -41,9 +41,23 @@ impl StoryTablet {
 
     pub fn new(name: &'static str,device: device::Device, config: Config) -> Result<Self, StoryTabletError> {
         let shared_data = Arc::new(SharedData::new(device, config));
-        let shared_mem = ShmemConf::new().size(4096).flink(name).create();
+        let shared_mem = match ShmemConf::new().size(4096).flink(name).create() {
+            Err(ShmemError::LinkExists) => {
+                match ShmemConf::new().size(4096).flink(name).open() {
+                    Err(err) => { Err(StoryTabletError::InstanceConflict(err)) }
+                    Ok(res) => { Ok(res) }
+                }
+            }
+
+            Err(err) => {
+                Err(StoryTabletError::InstanceConflict(err))
+            }
+
+            Ok(shared_mem) => { Ok(shared_mem) }
+        };
+
         if shared_mem.is_err() {
-            return Err(StoryTabletError::InstanceConflict(shared_mem.err().unwrap()))
+            return Err(shared_mem.err().unwrap())
         }
 
         Ok(Self {
@@ -76,10 +90,12 @@ impl StoryTablet {
         println!("Driver started");
 
         while self.started {
-            let (e, used_bytes) = unsafe { Event::from_existing(self.shared_mem.as_ptr()).unwrap() };
-            thread::sleep(Duration::from_millis(1));
+            /* let (e, used_bytes) = unsafe { Event::from_existing(self.shared_mem.as_ptr()).unwrap() };
+            
 
-            e.set(EventState::Signaled).expect("Cannot signal event");
+            e.set(EventState::Signaled).expect("Cannot signal event"); */
+
+            thread::sleep(Duration::from_millis(1));
         }
 
         let mut tablet_handler = self.tablet_handler.lock().unwrap();

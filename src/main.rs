@@ -11,17 +11,16 @@ mod config;
 mod command;
 mod tablet;
 
-use std::{fs::File, io::Read};
+use std::{env, fs::File, path::PathBuf, fs, io::Read};
 
 use story_tablet::StoryTablet;
 
 const NAME: &str = "StoryTablet";
-const CONFIG_NAME: &str = "last_config.json";
 
 fn main() {
     let device = serde_json::from_str::<device::Device>(device::DEVICE_CONFIG).expect("Cannot parse device config");
 
-    let tablet = StoryTablet::new(NAME, device, load_config(Some(CONFIG_NAME)));
+    let tablet = StoryTablet::new(NAME, device, load_config(env::args().nth(1)));
 
     if tablet.is_err() {
         panic!("Cannot initalize driver {:?}", tablet.err());
@@ -38,11 +37,11 @@ fn main() {
     }
 }
 
-fn load_config(config_path: Option<&str>) -> config::Config {
+fn load_config(config_path: Option<String>) -> config::Config {
     if config_path.is_some() {
         let config_path = config_path.unwrap();
 
-        let mut file = File::open(&config_path).expect("Cannot find config file");
+        let mut file = File::open(fs::canonicalize(PathBuf::from(config_path.clone())).unwrap()).expect("Cannot find config file");
         let mut contents = String::new();
 
         if file.metadata().unwrap().len() > 1048576 {
