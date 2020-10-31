@@ -4,6 +4,8 @@
  * Copyright (c) storycraft. Licensed under the MIT Licence.
  */
 
+#![windows_subsystem = "windows"]
+
 mod story_tablet;
 mod tablet_handler;
 mod device;
@@ -17,7 +19,6 @@ use story_tablet::StoryTablet;
 
 const PORT: u16 = 55472;
 
-#[windows_subsystem = "windows"]
 fn main() {
     let device = serde_json::from_str::<device::Device>(device::DEVICE_CONFIG).expect("Cannot parse device config");
 
