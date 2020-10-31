@@ -10,7 +10,7 @@ extern crate enigo;
 pub mod shared_data;
 
 pub use shared_data::SharedData;
-use tungstenite::{Message, WebSocket, server};
+use tungstenite::{HandshakeError, Message, WebSocket, server};
 
 use std::{io, net::TcpListener, net::TcpStream, sync::Arc, sync::RwLock, thread::JoinHandle, net::SocketAddr, thread, time::Duration};
 use crate::{command::ReqCommand, command::ResCommand, config::Config, device, tablet_handler::TabletHandler};
@@ -106,16 +106,43 @@ impl StoryTablet {
                 Ok((stream, addr)) => {
                     // Only accepts local connection
                     if stream.local_addr().unwrap().ip() == addr.ip() {
-                        connection.push((addr, server::accept(stream).unwrap()));
-                        println!("Connected from {}", addr);
+                        match server::accept(stream) {
+                            Err(HandshakeError::Interrupted(_)) => {
+                            }
+
+                            Err(_) => {
+                                println!("Error while making connection from {}", addr);
+                            }
+
+                            Ok(socket) => {
+                                connection.push((addr, socket));
+                                println!("Connected from {}", addr);
+                            }
+                        }
+                        
                     }
                 }
             }
 
+            connection.retain(move |(addr, socket)| {
+                if !socket.can_read() {
+                    println!("{} disconnected", addr);
+                    return false;
+                }
+
+                true
+            });
+
             for (_, socket) in connection.iter_mut() {
                 match socket.read_message() {
-                    Err(_) => { continue; }
-        
+                    Err(tungstenite::Error::Io(err)) if err.kind() == io::ErrorKind::WouldBlock => {
+
+                    }
+
+                    Err(_) => {
+                        continue;
+                    }       
+
                     Ok(message) => {
                         self.handle_socket(socket, message);
                     }
