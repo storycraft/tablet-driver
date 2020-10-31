@@ -1,5 +1,3 @@
-use std::sync::{Mutex, MutexGuard};
-
 use crate::{config, device};
 
 /*
@@ -11,7 +9,7 @@ use crate::{config, device};
 pub struct SharedData {
 
     device: device::Device,
-    config: Mutex<config::Config>
+    config: config::Config
 
 }
 
@@ -23,7 +21,7 @@ impl SharedData {
     ) -> Self {
         Self {
             device,
-            config: Mutex::new(config)
+            config: config
         }
     }
 
@@ -31,12 +29,12 @@ impl SharedData {
         &self.device
     }
 
-    pub fn get_config(&self) -> MutexGuard<config::Config> {
-        self.config.lock().unwrap()
+    pub fn get_config(&self) -> &config::Config {
+        &self.config
     }
 
-    pub fn set_config(&self, config: config::Config) {
-        self.config.lock().unwrap().clone_from(&config);
+    pub fn set_config(&mut self, config: config::Config) {
+        self.config = config;
     }
 
 }

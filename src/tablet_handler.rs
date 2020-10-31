@@ -6,24 +6,25 @@
 
 extern crate hidapi;
 
-use std::{sync::{Arc, Mutex, RwLock, atomic::{AtomicBool, Ordering}}, thread, time::Duration};
+use serde::{Deserialize, Serialize};
+use std::{sync::{Arc, RwLock, atomic::{AtomicBool, Ordering}}, thread, time::Duration};
 
-use hidapi::HidApi;
+use hidapi::{HidApi, HidDevice};
 use enigo::{Enigo, Key, KeyboardControllable, MouseControllable};
 use crate::{config::KeyBinding, story_tablet::SharedData};
 use crate::tablet::{Data, State};
 
 pub struct TabletHandler {
 
-    shared_data: Arc<SharedData>,
+    shared_data: Arc<RwLock<SharedData>>,
 
     status: RwLock<TabletStatus>,
     running: AtomicBool,
 
-    state: Mutex<State>,
-
+    state: RwLock<State>,
 }
 
+#[derive(Serialize, Deserialize, Copy, Clone)]
 pub enum TabletStatus {
 
     NotConnected,
@@ -42,7 +43,7 @@ pub enum HandlerError {
 
 impl TabletHandler {
 
-    pub fn new(shared_data: Arc<SharedData>) -> Self {
+    pub fn new(shared_data: Arc<RwLock<SharedData>>) -> Self {
         Self {
             shared_data,
             status: RwLock::new(TabletStatus::NotConnected),
@@ -79,48 +80,35 @@ impl TabletHandler {
         self.running.load(Ordering::Relaxed)
     }
 
+    pub fn get_status(&self) -> TabletStatus {
+        self.status.read().unwrap().clone()
+    }
+
+    pub fn set_status(&self, status: TabletStatus) {
+        *self.status.write().unwrap() = status;
+    }
+
     fn run(&self) {
         let mut hid_api = HidApi::new().expect("Cannot initalize hid device");
         let mut controller = Enigo::new();
+        
+        let mut buffer = [0_u8; 11];
+        let mut hid_device: Option<HidDevice> = None;
+
         while self.running.load(Ordering::Relaxed) {
-            let device = self.shared_data.device();
-            
-            hid_api.refresh_devices().expect("Cannot refresh devices");
+            match self.get_status() {
+                TabletStatus::Connected => {
+                    if hid_device.is_none() {
+                        self.set_status(TabletStatus::NotConnected);
+                        continue;
+                    }
 
-            let info = hid_api.device_list().filter(
-                |item| 
-                item.vendor_id() == device.info.vendor &&
-                item.product_id() == device.info.product &&
-                item.usage() == device.info.usage &&
-                item.usage_page() == device.info.usage_page
-            ).next();
-
-            match info {
-                None => {
-                    println!("Waiting tablet to connect..");
-                }
-
-                Some(device_info) => {
-                    let hid_device = device_info.open_device(&hid_api).expect("Cannot open device");
-            
-                    *self.status.write().unwrap() = TabletStatus::Connected;
-        
-                    println!("Connected to {} {} {}",
-                        device_info.manufacturer_string().unwrap_or("Unknown"),
-                        device_info.product_string().unwrap_or("Unknown"),
-                        device_info.serial_number().unwrap_or("Unknown")
-                    );
-        
-                    let mut buffer = [0_u8; 11];
-                    // setup tablet
-                    hid_device.send_feature_report(&self.shared_data.device().info.init_features).expect("Cannot init features");
-        
                     while self.running.load(Ordering::Relaxed) {
-                        match hid_device.read(&mut buffer) {
+                        match hid_device.as_ref().unwrap().read(&mut buffer) {
                             Err(err) => {
                                 println!("Error while reading data {}", err);
         
-                                *self.status.write().unwrap() = TabletStatus::Error;
+                                self.set_status(TabletStatus::Error);
                                 break;
                             }
             
@@ -130,7 +118,46 @@ impl TabletHandler {
                         }
                     }
                 }
+
+                TabletStatus::NotConnected | TabletStatus::Error => {
+                    let shared_data = self.shared_data.read().unwrap();
+
+                    let device = shared_data.device();
+                    
+                    hid_api.refresh_devices().expect("Cannot refresh devices");
+        
+                    let info = hid_api.device_list().filter(
+                        |item| 
+                        item.vendor_id() == device.info.vendor &&
+                        item.product_id() == device.info.product &&
+                        item.usage() == device.info.usage &&
+                        item.usage_page() == device.info.usage_page
+                    ).next();
+
+                    match info {
+                        None => {
+                            println!("Waiting tablet to connect..");
+                        }
+        
+                        Some(device_info) => {
+                            let hid = device_info.open_device(&hid_api).expect("Cannot open device");
+                    
+                            self.set_status(TabletStatus::Connected);
+                
+                            println!("Connected to {} {} {}",
+                                device_info.manufacturer_string().unwrap_or("Unknown"),
+                                device_info.product_string().unwrap_or("Unknown"),
+                                device_info.serial_number().unwrap_or("Unknown")
+                            );
+                            // setup tablet
+                            hid.send_feature_report(&shared_data.device().info.init_features).expect("Cannot init features");
+
+                            hid_device = Some(hid);
+                        }
+                    }
+                }
             }
+
             thread::sleep(Duration::from_secs(1));
         }
     }
@@ -180,15 +207,15 @@ impl TabletHandler {
     }
 
     fn on_data(&self, controller: &mut Enigo, buffer: &[u8; 11], _: usize) {
-        if buffer[0] != self.shared_data.device().info.init_features[0] { return; }
+        if buffer[0] != 2 { return; }
 
         let data = bincode::deserialize::<Data>(buffer).expect("Cannot read data");
         let state = State::from_data(data);
-        let mut prev_state = self.state.lock().unwrap();
+        let mut prev_state = self.state.write().unwrap();
 
         // println!("{:?}", state);
         
-        let config = self.shared_data.get_config().clone();
+        let config = self.shared_data.read().unwrap().get_config().clone();
 
         if (state.inited || state.hovering) && config.hover_enabled || state.buttons[0] {
             let x = ((state.pos.0 as f32 - config.mapping.x as f32).max(0.0) / config.mapping.width as f32).min(1.0) * config.screen.width as f32;

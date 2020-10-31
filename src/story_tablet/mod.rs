@@ -12,7 +12,7 @@ pub mod shared_data;
 pub use shared_data::SharedData;
 use tungstenite::{Message, WebSocket, server};
 
-use std::{io, net::TcpListener, net::TcpStream, sync::Arc, thread::JoinHandle, sync::RwLock, thread, time::Duration};
+use std::{io, net::TcpListener, net::TcpStream, sync::Arc, sync::RwLock, thread::JoinHandle, net::SocketAddr, thread, time::Duration};
 use crate::{command::ReqCommand, command::ResCommand, config::Config, device, tablet_handler::TabletHandler};
 
 #[derive(Debug)]
@@ -26,7 +26,7 @@ pub struct StoryTablet {
     server: TcpListener,
 
     started: bool,
-    shared: Arc<SharedData>,
+    shared: Arc<RwLock<SharedData>>,
 
     tablet_handler: Arc<TabletHandler>
 
@@ -35,10 +35,11 @@ pub struct StoryTablet {
 impl StoryTablet {
 
     pub fn new(port: u16, device: device::Device, config: Config) -> Result<Self, StoryTabletError> {
-        let shared_data = Arc::new(SharedData::new(device, config));
+        let shared_data = Arc::new(RwLock::new(SharedData::new(device, config)));
 
         Ok(Self {
             server: TcpListener::bind(("127.0.0.1", port)).unwrap(),
+
             started: false,
             shared: Arc::clone(&shared_data),
 
@@ -66,24 +67,7 @@ impl StoryTablet {
         println!("Driver started");
 
         self.server.set_nonblocking(true).expect("Cannot set non-blocking");
-        // Only accepts 1 connection
-        while self.started {
-            match self.server.accept() {
-                Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
-                    
-                }
-
-                Err(err) => {
-                    panic!("Cannot receive incoming connection. Error: {}", err);
-                }
-
-                Ok((stream, _)) => {
-                    self.handle_connection(stream);
-                }
-            }
-
-            thread::sleep(Duration::from_secs(1));
-        }
+        self.listen_connection();
 
         let tablet_handler = self.tablet_handler.clone();
         if tablet_handler.running() {
@@ -107,31 +91,48 @@ impl StoryTablet {
         self.started
     }
 
-    fn handle_connection(&mut self, stream: TcpStream) {
-        // Only accepts local connection
-        if stream.local_addr().unwrap().ip() != stream.peer_addr().unwrap().ip() {
-            return;
-        }
-
-        let addr = stream.peer_addr().unwrap();
-        println!("Connected from {}", addr);
-
-        let mut websocket = server::accept(stream).unwrap();
+    fn listen_connection(&mut self) {
+        let mut connection: Vec<(SocketAddr, WebSocket<TcpStream>)> = Vec::with_capacity(1);
         while self.started {
-            match websocket.read_message() {
-                Err(_) => { continue; }
-    
-                Ok(message) => {
-                    self.handle_socket(&mut websocket, message);
+            match self.server.accept() {
+                Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
+                    
+                }
+
+                Err(err) => {
+                    panic!("Cannot receive incoming connection. Error: {}", err);
+                }
+
+                Ok((stream, addr)) => {
+                    // Only accepts local connection
+                    if stream.local_addr().unwrap().ip() == addr.ip() {
+                        connection.push((addr, server::accept(stream).unwrap()));
+                        println!("Connected from {}", addr);
+                    }
                 }
             }
-        }
-        let closing = websocket.close(None);
-        if closing.is_err() {
-            println!("Error while closing socket: {}", closing.err().unwrap());
+
+            for (_, socket) in connection.iter_mut() {
+                match socket.read_message() {
+                    Err(_) => { continue; }
+        
+                    Ok(message) => {
+                        self.handle_socket(socket, message);
+                    }
+                }
+            }
+
+            thread::sleep(Duration::from_millis(1));
         }
 
-        println!("{} disconnected", addr);
+        for (addr, mut socket) in connection {
+            let closing = socket.close(None);
+            if closing.is_err() {
+                println!("Error while closing socket: {}", closing.err().unwrap());
+            }
+
+            println!("{} disconnected", addr);
+        }
         
     }
 
@@ -167,12 +168,17 @@ impl StoryTablet {
             }
 
             ReqCommand::GetConfig { } => {
-                Self::send_response(socket, ResCommand::GetConfig { config: self.shared.get_config().clone() });
+                Self::send_response(socket, ResCommand::GetConfig { config: self.shared.read().unwrap().get_config().clone() });
             }
 
             ReqCommand::UpdateConfig { config } => {
-                self.shared.set_config(config);
+                self.shared.write().unwrap().set_config(config);
+                println!("Config updated");
                 Self::send_response(socket, ResCommand::UpdateConfig { updated: true });
+            }
+
+            ReqCommand::GetStatus { } => {
+                Self::send_response(socket, ResCommand::GetStatus { status: self.tablet_handler.get_status() });
             }
 
             _ => {

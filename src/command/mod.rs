@@ -6,7 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::config::Config;
+use crate::{config::Config, tablet_handler::TabletStatus};
 
 // Client to server
 #[derive(Serialize, Deserialize)]
@@ -19,6 +19,10 @@ pub enum ReqCommand {
 
     GetConfig {
         
+    },
+    
+    GetStatus {
+
     },
 
     UpdateConfig {
@@ -38,6 +42,10 @@ pub enum ResCommand {
 
     GetConfig {
         config: Config
+    },
+
+    GetStatus {
+        status: TabletStatus
     },
 
     UpdateConfig {
