@@ -130,7 +130,7 @@ function syncAreaBox() {
     areaBox.style.width = `${(currentConfig.mapping.width / 15200) * 45}vw`;
     areaBox.style.height = `${(currentConfig.mapping.height / 9500) * 28.125}vw`;
 
-    areaText.innerText = `1 : ${(currentConfig.mapping.width / currentConfig.mapping.height).toFixed(4)}`;
+    areaText.innerText = `${(currentConfig.mapping.width / currentConfig.mapping.height).toFixed(4)} : 1`;
 }
 
 function exportConfig() {
