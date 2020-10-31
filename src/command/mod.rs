@@ -13,10 +13,6 @@ use crate::{config::Config, tablet_handler::TabletStatus};
 #[serde(tag = "id")]
 pub enum ReqCommand {
 
-    Stop {
-
-    },
-
     GetConfig {
         
     },
@@ -35,10 +31,6 @@ pub enum ReqCommand {
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "id")]
 pub enum ResCommand {
-
-    Stop {
-        stopping: bool
-    },
 
     GetConfig {
         config: Config

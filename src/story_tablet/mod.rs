@@ -155,18 +155,6 @@ impl StoryTablet {
     fn handle_command(&mut self, socket: &mut WebSocket<TcpStream>, command: ReqCommand) {
         match command {
 
-            ReqCommand::Stop { } => {
-                let stop_res = self.stop();
-
-                if stop_res.is_err() {
-                    println!("Cannot stop driver: {:?}", stop_res.err().unwrap());
-
-                    Self::send_response(socket, ResCommand::Stop { stopping: false });
-                } else {
-                    Self::send_response(socket, ResCommand::Stop { stopping: true });
-                }
-            }
-
             ReqCommand::GetConfig { } => {
                 Self::send_response(socket, ResCommand::GetConfig { config: self.shared.read().unwrap().get_config().clone() });
             }
