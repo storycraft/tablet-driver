@@ -4,7 +4,7 @@
  * Copyright (c) storycraft. Licensed under the MIT Licence.
  */
 
-#![windows_subsystem = "windows"]
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod story_tablet;
 mod tablet_handler;
