@@ -9,67 +9,40 @@ extern crate enigo;
 
 pub mod shared_data;
 
-use raw_sync::events::{Event, EventInit, EventState};
 pub use shared_data::SharedData;
-use shared_memory::{Shmem, ShmemConf, ShmemError};
+use tungstenite::{Message, WebSocket, server};
 
-use std::{sync::Arc, thread::JoinHandle, sync::Mutex, thread, time::Duration};
-
-use crate::{config::Config, device, tablet_handler::TabletHandler};
+use std::{io, net::TcpListener, net::TcpStream, sync::Arc, thread::JoinHandle, sync::RwLock, thread, time::Duration};
+use crate::{command::ReqCommand, command::ResCommand, config::Config, device, tablet_handler::TabletHandler};
 
 #[derive(Debug)]
 pub enum StoryTabletError {
 
-    NotStarted, AlreadyStarted,
-    InstanceConflict(ShmemError)
+    NotStarted, AlreadyStarted
 
 }
 pub struct StoryTablet {
 
-    name: &'static str,
-
-    shared_mem: Shmem,
+    server: TcpListener,
 
     started: bool,
     shared: Arc<SharedData>,
 
-    tablet_handler: Arc<Mutex<TabletHandler>>
+    tablet_handler: Arc<TabletHandler>
 
 }
 
 impl StoryTablet {
 
-    pub fn new(name: &'static str, device: device::Device, config: Config) -> Result<Self, StoryTabletError> {
+    pub fn new(port: u16, device: device::Device, config: Config) -> Result<Self, StoryTabletError> {
         let shared_data = Arc::new(SharedData::new(device, config));
 
-        let shared_mem_name = vec![name.to_string(), ".lock".to_string()].join("");
-
-        let shared_mem = match ShmemConf::new().size(4096).flink(&shared_mem_name).create() {
-            Err(ShmemError::LinkExists) => {
-                match ShmemConf::new().size(4096).flink(&shared_mem_name).open() {
-                    Err(err) => { Err(StoryTabletError::InstanceConflict(err)) }
-                    Ok(res) => { Ok(res) }
-                }
-            }
-
-            Err(err) => {
-                Err(StoryTabletError::InstanceConflict(err))
-            }
-
-            Ok(shared_mem) => { Ok(shared_mem) }
-        };
-
-        if shared_mem.is_err() {
-            return Err(shared_mem.err().unwrap())
-        }
-
         Ok(Self {
-            name,
-            shared_mem: shared_mem.unwrap(),
+            server: TcpListener::bind(("127.0.0.1", port)).unwrap(),
             started: false,
             shared: Arc::clone(&shared_data),
 
-            tablet_handler: Arc::new(Mutex::new(TabletHandler::new(Arc::clone(&shared_data))))
+            tablet_handler: Arc::new(TabletHandler::new(shared_data.clone()))
         })
     }
     
@@ -84,24 +57,35 @@ impl StoryTablet {
         }
         self.started = true;
 
-        let inner_handler = Arc::clone(&self.tablet_handler);
+        let inner_handler = self.tablet_handler.clone();
         let input_handle = self.create_handle(move || {
-            inner_handler.lock().unwrap().start();
+            inner_handler.start();
         });
         println!("Input thread started. Id: {:?}", input_handle.thread().id());
 
         println!("Driver started");
 
+        self.server.set_nonblocking(true).expect("Cannot set non-blocking");
+        // Only accepts 1 connection
         while self.started {
-            /* let (e, used_bytes) = unsafe { Event::from_existing(self.shared_mem.as_ptr()).unwrap() };
-            
+            match self.server.accept() {
+                Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
+                    
+                }
 
-            e.set(EventState::Signaled).expect("Cannot signal event"); */
+                Err(err) => {
+                    panic!("Cannot receive incoming connection. Error: {}", err);
+                }
 
-            thread::sleep(Duration::from_millis(1));
+                Ok((stream, _)) => {
+                    self.handle_connection(stream);
+                }
+            }
+
+            thread::sleep(Duration::from_secs(1));
         }
 
-        let mut tablet_handler = self.tablet_handler.lock().unwrap();
+        let tablet_handler = self.tablet_handler.clone();
         if tablet_handler.running() {
             tablet_handler.stop();
         }
@@ -123,7 +107,86 @@ impl StoryTablet {
         self.started
     }
 
-    pub fn name(&self) -> &'static str {
-        self.name
+    fn handle_connection(&mut self, stream: TcpStream) {
+        // Only accepts local connection
+        if stream.local_addr().unwrap().ip() != stream.peer_addr().unwrap().ip() {
+            return;
+        }
+
+        let addr = stream.peer_addr().unwrap();
+        println!("Connected from {}", addr);
+
+        let mut websocket = server::accept(stream).unwrap();
+        while self.started {
+            match websocket.read_message() {
+                Err(_) => { continue; }
+    
+                Ok(message) => {
+                    self.handle_socket(&mut websocket, message);
+                }
+            }
+        }
+        let closing = websocket.close(None);
+        if closing.is_err() {
+            println!("Error while closing socket: {}", closing.err().unwrap());
+        }
+
+        println!("{} disconnected", addr);
+        
+    }
+
+    fn handle_socket(&mut self, socket: &mut WebSocket<TcpStream>, message: Message) {
+        if !message.is_text() {
+            return;
+        }
+        
+        match serde_json::from_str::<ReqCommand>(message.to_text().unwrap()) {
+            Err(err) => {
+                println!("Unknown message received by client: {}", err);
+            }
+
+            Ok(req) => {
+                self.handle_command(socket, req);
+            }
+        }
+    }
+
+    fn handle_command(&mut self, socket: &mut WebSocket<TcpStream>, command: ReqCommand) {
+        match command {
+
+            ReqCommand::Stop { } => {
+                let stop_res = self.stop();
+
+                if stop_res.is_err() {
+                    println!("Cannot stop driver: {:?}", stop_res.err().unwrap());
+
+                    Self::send_response(socket, ResCommand::Stop { stopping: false });
+                } else {
+                    Self::send_response(socket, ResCommand::Stop { stopping: true });
+                }
+            }
+
+            ReqCommand::GetConfig { } => {
+                Self::send_response(socket, ResCommand::GetConfig { config: self.shared.get_config().clone() });
+            }
+
+            ReqCommand::UpdateConfig { config } => {
+                self.shared.set_config(config);
+                Self::send_response(socket, ResCommand::UpdateConfig { updated: true });
+            }
+
+            _ => {
+                
+            }
+        }
+        
+    }
+
+    fn send_response(socket: &mut WebSocket<TcpStream>, res: ResCommand) {
+        let written = socket.write_message(Message::Text(serde_json::to_string(&res).unwrap()));
+
+        if written.is_err() {
+            println!("Cannot write response: {}", written.err().unwrap());
+        }
     }
 }

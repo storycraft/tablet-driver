@@ -17,10 +17,6 @@ pub enum ReqCommand {
 
     },
 
-    ConfigUpdated {
-        config: Config
-    },
-
     GetConfig {
         
     },

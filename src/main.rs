@@ -15,12 +15,12 @@ use std::{env, fs::File, path::PathBuf, fs, io::Read};
 
 use story_tablet::StoryTablet;
 
-const NAME: &str = "StoryTablet";
+const PORT: u16 = 55472;
 
 fn main() {
     let device = serde_json::from_str::<device::Device>(device::DEVICE_CONFIG).expect("Cannot parse device config");
 
-    let tablet = StoryTablet::new(NAME, device, load_config(env::args().nth(1)));
+    let tablet = StoryTablet::new(PORT, device, load_config(env::args().nth(1)));
 
     if tablet.is_err() {
         panic!("Cannot initalize driver {:?}", tablet.err());

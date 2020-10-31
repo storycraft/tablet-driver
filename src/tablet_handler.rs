@@ -6,27 +6,21 @@
 
 extern crate hidapi;
 
-use std::{sync::Arc, time::Duration, thread};
+use std::{sync::{Arc, Mutex, RwLock, atomic::{AtomicBool, Ordering}}, thread, time::Duration};
 
-use hidapi::{HidApi, HidError};
+use hidapi::HidApi;
 use enigo::{Enigo, Key, KeyboardControllable, MouseControllable};
 use crate::{config::KeyBinding, story_tablet::SharedData};
 use crate::tablet::{Data, State};
 
 pub struct TabletHandler {
 
-
     shared_data: Arc<SharedData>,
 
-    status: TabletStatus,
-    running: bool,
+    status: RwLock<TabletStatus>,
+    running: AtomicBool,
 
-    state: State,
-    controller: Enigo,
-
-}
-
-unsafe impl Sync for TabletHandler {
+    state: Mutex<State>,
 
 }
 
@@ -34,7 +28,7 @@ pub enum TabletStatus {
 
     NotConnected,
     Connected,
-    Error(HidError)
+    Error
 
 }
 
@@ -51,18 +45,17 @@ impl TabletHandler {
     pub fn new(shared_data: Arc<SharedData>) -> Self {
         Self {
             shared_data,
-            status: TabletStatus::NotConnected,
-            running: false,
+            status: RwLock::new(TabletStatus::NotConnected),
+            running: AtomicBool::new(false),
             state: Default::default(),
-            controller: Enigo::new(),
         }
     }
 
-    pub fn start(&mut self) -> Option<HandlerError> {
-        if self.running {
+    pub fn start(&self) -> Option<HandlerError> {
+        if self.running.load(Ordering::Relaxed) {
             return Some(HandlerError::AlreadyStarted);
         }
-        self.running = true;
+        self.running.store(true, Ordering::Relaxed);
 
         println!("Tablet started");
 
@@ -71,11 +64,11 @@ impl TabletHandler {
         None
     }
 
-    pub fn stop(&mut self) -> Option<HandlerError> {
-        if !self.running {
+    pub fn stop(&self) -> Option<HandlerError> {
+        if !self.running.load(Ordering::Relaxed) {
             return Some(HandlerError::NotStarted);
         }
-        self.running = false;
+        self.running.store(false, Ordering::Relaxed);
 
         println!("Stopping");
 
@@ -83,16 +76,13 @@ impl TabletHandler {
     }
 
     pub fn running(&self) -> bool {
-        self.running
+        self.running.load(Ordering::Relaxed)
     }
 
-    pub fn status(&self) -> &TabletStatus {
-        &self.status
-    }
-
-    fn run(&mut self) {
+    fn run(&self) {
         let mut hid_api = HidApi::new().expect("Cannot initalize hid device");
-        loop {
+        let mut controller = Enigo::new();
+        while self.running.load(Ordering::Relaxed) {
             let device = self.shared_data.device();
             
             hid_api.refresh_devices().expect("Cannot refresh devices");
@@ -113,7 +103,7 @@ impl TabletHandler {
                 Some(device_info) => {
                     let hid_device = device_info.open_device(&hid_api).expect("Cannot open device");
             
-                    self.status = TabletStatus::Connected;
+                    *self.status.write().unwrap() = TabletStatus::Connected;
         
                     println!("Connected to {} {} {}",
                         device_info.manufacturer_string().unwrap_or("Unknown"),
@@ -125,17 +115,17 @@ impl TabletHandler {
                     // setup tablet
                     hid_device.send_feature_report(&self.shared_data.device().info.init_features).expect("Cannot init features");
         
-                    while self.running {
+                    while self.running.load(Ordering::Relaxed) {
                         match hid_device.read(&mut buffer) {
                             Err(err) => {
                                 println!("Error while reading data {}", err);
         
-                                self.status = TabletStatus::Error(err);
+                                *self.status.write().unwrap() = TabletStatus::Error;
                                 break;
                             }
             
                             Ok(readed) => {
-                                self.on_data(&buffer, readed);
+                                self.on_data(&mut controller, &buffer, readed);
                             }
                         }
                     }
@@ -145,19 +135,19 @@ impl TabletHandler {
         }
     }
 
-    fn down_key(&mut self, binding: KeyBinding) {
+    fn down_key(&self, controller: &mut Enigo, binding: KeyBinding) {
         match binding {
             KeyBinding::Mouse { button } => {
-                self.controller.mouse_down(button);
+                controller.mouse_down(button);
             }
 
             KeyBinding::Keyboard { modifiers, key } => {
                 if modifiers.is_some() {
-                    modifiers.clone().unwrap().iter().for_each(|modifer_key| self.controller.key_down(*modifer_key));
+                    modifiers.clone().unwrap().iter().for_each(|modifer_key| controller.key_down(*modifer_key));
                 }
                 
                 if key.is_some() {
-                    self.controller.key_down(Key::Layout(key.unwrap()));
+                    controller.key_down(Key::Layout(key.unwrap()));
                 }
             }
 
@@ -167,19 +157,19 @@ impl TabletHandler {
         }
     }
 
-    fn up_key(&mut self, binding: KeyBinding) {
+    fn up_key(&self, controller: &mut Enigo, binding: KeyBinding) {
         match binding {
             KeyBinding::Mouse { button } => {
-                self.controller.mouse_up(button);
+                controller.mouse_up(button);
             }
 
             KeyBinding::Keyboard { modifiers, key } => {
                 if modifiers.is_some() {
-                    modifiers.clone().unwrap().iter().for_each(|modifer_key| self.controller.key_up(*modifer_key));
+                    modifiers.clone().unwrap().iter().for_each(|modifer_key| controller.key_up(*modifer_key));
                 }
                 
                 if key.is_some() {
-                    self.controller.key_up(Key::Layout(key.unwrap()));
+                    controller.key_up(Key::Layout(key.unwrap()));
                 }
             }
 
@@ -189,11 +179,12 @@ impl TabletHandler {
         }
     }
 
-    fn on_data(&mut self, buffer: &[u8; 11], _: usize) {
+    fn on_data(&self, controller: &mut Enigo, buffer: &[u8; 11], _: usize) {
         if buffer[0] != self.shared_data.device().info.init_features[0] { return; }
 
         let data = bincode::deserialize::<Data>(buffer).expect("Cannot read data");
         let state = State::from_data(data);
+        let mut prev_state = self.state.lock().unwrap();
 
         // println!("{:?}", state);
         
@@ -206,22 +197,22 @@ impl TabletHandler {
             let win_x = x * config.matrix.0 + y * config.matrix.1;
             let win_y = x * config.matrix.2 + y * config.matrix.3;
 
-            self.controller.mouse_move_to(win_x as i32,win_y as i32);
+            controller.mouse_move_to(win_x as i32,win_y as i32);
         }
 
         for i in 0..3 {
-            if state.buttons[i] != self.state.buttons[i] {
+            if state.buttons[i] != prev_state.buttons[i] {
                 let binding = config.buttons[i].clone();
                 if state.buttons[i] {
-                    self.down_key(binding);
+                    self.down_key(controller, binding);
                 } else {
-                    self.up_key(binding);
+                    self.up_key(controller, binding);
                 }
             }
         }
 
         // Update state
-        self.state = state;
+        *prev_state = state;
     }
 
 }
