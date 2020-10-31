@@ -1,5 +1,5 @@
-footer {
-    display: flex;
+* {
+    user-select: none;
 }
 
 .title-text {
@@ -36,7 +36,7 @@ footer {
 }
 
 .export-wrapper {
-    display: inline;
+    text-align: end;
 }
 
 .export-btn {
@@ -44,39 +44,34 @@ footer {
 }
 
 .editor-wrapper {
-    width: auto;
-    height: auto;
-    
     padding: 0.5rem 0px 0px 0px;
 }
 
 .area-box-wrapper {
 
-    display: flex;
-
     width: 100%;
     height: 62.5%;
+
+    text-align: center;
 
 }
 
 .area-box-field {
+    display: inline-block;
+    
     border: 0.1rem solid rgba(80, 80, 80, 0.75);
 
     margin: 0px auto;
 
-    width: 58rem;
-    height: 36.25rem;
+    width: 45vw;
+    height: 28.125vw;
 }
 
 .area-box {
     border: 0.1rem solid rgb(133, 64, 223);
     background: rgb(135, 68, 223);
 
-    position: absolute;
-
-    /* test */
-    width: 300px;
-    height: 200px;
+    position: relative;
 }
 
 .area-text-wrapper {
@@ -96,9 +91,10 @@ footer {
 }
 
 .settings-wrapper {
-    display: inline-flex;
+    display: inline-block;
+    text-align: center;
 
-    padding: 1.3rem 0.5rem 0px 0.5rem;
+    padding: 1.3rem 0.5rem;
 }
 
 .settings-element-wrapper > * {
@@ -107,7 +103,7 @@ footer {
 }
 
 .settings-box {
-    display: block;
+    display: inline-block;
 
     width: 20rem;
     height: auto;
