@@ -4,8 +4,14 @@ Custom tablet driver for CTL-472
 ## Build
 `cargo build`
 
+## Installation
+### Windows
+Run install.bat. Driver will auto restart on boot.
+### Others
+Auto start installer not provided. Manually add it (for now).
+
 ## Customizing
-Drag config file to executable.
+Open `configurator/index.html` (incomplete)
 
 ## Spec
 | Name     | CTL-472               |

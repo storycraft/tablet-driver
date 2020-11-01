@@ -157,7 +157,7 @@ function updateDOM() {
         button2Value.value = '';
     }
     if (currentConfig.buttons[2].mode != 'Disabled') {
-        button1Value.disabled = false;
+        button3Value.disabled = false;
         button3Value.value = currentConfig.buttons[2].button || currentConfig.buttons[2].keys.join(' + ');
     } else {
         button3Value.disabled = true;
