@@ -209,13 +209,15 @@ impl TabletHandler {
     fn on_data(&self, controller: &mut Enigo, buffer: &[u8; 11], _: usize) {
         if buffer[0] != 2 { return; }
 
+        let shared = self.shared_data.read().unwrap();
+
         let data = bincode::deserialize::<Data>(buffer).expect("Cannot read data");
         let state = State::from_data(data);
         let mut prev_state = self.state.write().unwrap();
 
         // println!("{:?}", state);
-        
-        let config = self.shared_data.read().unwrap().get_config().clone();
+    
+        let config = shared.get_config();
 
         if (state.inited || state.hovering) && config.hover_enabled || state.buttons[0] {
             let x = ((state.pos.0 as f32 - config.mapping.x as f32).max(0.0) / config.mapping.width as f32).min(1.0) * config.screen.width as f32;

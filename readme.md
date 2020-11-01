@@ -6,7 +6,7 @@ Custom tablet driver for CTL-472
 
 ## Installation
 ### Windows
-Run install.bat. Driver will auto restart on boot.
+Run install.bat. Driver will autostart on boot.
 ### Others
 Auto start installer not provided. Manually add it (for now).
 
