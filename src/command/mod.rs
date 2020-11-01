@@ -6,18 +6,39 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::{config::Config, tablet_handler::TabletStatus};
+use crate::{config::Config, device::Device, tablet_handler::TabletStatus};
+
+
+#[derive(Serialize, Deserialize)]
+pub struct ReqCommand {
+
+    pub id: i32,
+    pub data: ReqCommands
+
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ResCommand {
+
+    pub id: i32,
+    pub data: ResCommands
+
+}
 
 // Client to server
 #[derive(Serialize, Deserialize)]
-#[serde(tag = "id")]
-pub enum ReqCommand {
+#[serde(tag = "type")]
+pub enum ReqCommands {
 
     GetConfig {
         
     },
     
     GetStatus {
+
+    },
+
+    GetDevice {
 
     },
 
@@ -29,8 +50,8 @@ pub enum ReqCommand {
 
 // Server to client
 #[derive(Serialize, Deserialize)]
-#[serde(tag = "id")]
-pub enum ResCommand {
+#[serde(tag = "type")]
+pub enum ResCommands {
 
     GetConfig {
         config: Config
@@ -38,6 +59,10 @@ pub enum ResCommand {
 
     GetStatus {
         status: TabletStatus
+    },
+
+    GetDevice {
+        device: Device
     },
 
     UpdateConfig {

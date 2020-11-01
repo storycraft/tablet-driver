@@ -59,3 +59,14 @@ button:hover {
     background: rgb(65, 110, 255);
     transition: background 300ms;
 }
+
+select {
+    background: rgba(0, 0, 0, .15);
+    border: none;
+    border-radius: 0.5rem;
+
+    padding: 0.64rem 3.96rem;
+
+    font-size: 1.3rem;
+    color: rgb(33, 33, 33);
+}

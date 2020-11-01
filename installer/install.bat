@@ -20,7 +20,7 @@ if not exist %INSTALL_PATH% (
 
 echo Configuring..
 
-reg add HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run /v StoryTabletDriver /f /d "\"%INSTALL_PATH%\%EXE_NAME%\" %CONFIG_NAME%"
+reg add HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run /v StoryTabletDriver /f /d "\"%INSTALL_PATH%\%EXE_NAME%\" %INSTALL_PATH%\%CONFIG_NAME%"
 
 echo Driver installed
 

@@ -13,7 +13,7 @@ pub use shared_data::SharedData;
 use tungstenite::{HandshakeError, Message, WebSocket, server};
 
 use std::{io, net::TcpListener, net::TcpStream, sync::Arc, sync::RwLock, thread::JoinHandle, net::SocketAddr, thread, time::Duration};
-use crate::{command::ReqCommand, command::ResCommand, config::Config, device, tablet_handler::TabletHandler};
+use crate::{command::ReqCommands, command::ResCommand, command::ResCommands, config::Config, command::ReqCommand, device, tablet_handler::TabletHandler};
 
 #[derive(Debug)]
 pub enum StoryTabletError {
@@ -180,24 +180,23 @@ impl StoryTablet {
     }
 
     fn handle_command(&mut self, socket: &mut WebSocket<TcpStream>, command: ReqCommand) {
-        match command {
-
-            ReqCommand::GetConfig { } => {
-                Self::send_response(socket, ResCommand::GetConfig { config: self.shared.read().unwrap().get_config().clone() });
+        match command.data {
+            ReqCommands::GetConfig { } => {
+                Self::send_response(socket, ResCommand { id: command.id, data: ResCommands::GetConfig { config: self.shared.read().unwrap().get_config().clone() } });
             }
 
-            ReqCommand::UpdateConfig { config } => {
+            ReqCommands::UpdateConfig { config } => {
                 self.shared.write().unwrap().set_config(config);
                 println!("Config updated");
-                Self::send_response(socket, ResCommand::UpdateConfig { updated: true });
+                Self::send_response(socket, ResCommand { id: command.id, data: ResCommands::UpdateConfig { updated: true } });
             }
 
-            ReqCommand::GetStatus { } => {
-                Self::send_response(socket, ResCommand::GetStatus { status: self.tablet_handler.get_status() });
+            ReqCommands::GetStatus { } => {
+                Self::send_response(socket, ResCommand { id: command.id, data: ResCommands::GetStatus { status: self.tablet_handler.get_status() } });
             }
 
-            _ => {
-                
+            ReqCommands::GetDevice { } => {
+                Self::send_response(socket, ResCommand { id: command.id, data: ResCommands::GetDevice { device: self.shared.read().unwrap().device().clone() } });
             }
         }
         
