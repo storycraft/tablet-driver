@@ -4,7 +4,7 @@
  * Copyright (c) storycraft. Licensed under the MIT Licence.
  */
 
-use std::{fs::File, fs::OpenOptions, io, io::Read, io::Write};
+use std::{fs, io};
 
 use enigo::{Key, MouseButton};
 use serde::{Deserialize, Serialize};
@@ -27,18 +27,27 @@ pub struct Config {
 
 impl Config {
 
-    pub fn load_from_file(file: &mut File) -> Result<Self, ConfigError> {
-        if file.metadata().unwrap().len() > 1048576 {
-            return Err(ConfigError::TooLarge);
-        }
+    pub fn load_from_path(path: &String) -> Result<Self, ConfigError> {
+        match fs::metadata(path) {
+            Err(err) => {
+                return Err(ConfigError::Io(err));
+            }
 
-        let mut content = String::new();
-        match file.read_to_string(&mut content) {
+            Ok(metadata) => {
+                if metadata.len() > 1048576 {
+                    return Err(ConfigError::TooLarge);
+                }
+            }
+            
+        };
+
+        match fs::read_to_string(path) {
             Err(err) => {
                 Err(ConfigError::Io(err))
             }
 
-            Ok(_) => {
+            Ok(content) => {
+
                 Self::load_from_content(content.as_str())
             }
         }
@@ -54,13 +63,13 @@ impl Config {
         Ok(config_res.unwrap())
     }
 
-    pub fn save_to_file(&self, file: &mut File, pretty: bool) -> Result<(), ConfigError> {
+    pub fn save_to_path(&self, path: &String, pretty: bool) -> Result<(), ConfigError> {
         let content = if pretty { serde_json::to_string_pretty(self) } else { serde_json::to_string(self) };
         if content.is_err() {
             return Err(ConfigError::JsonParse(content.err().unwrap()));
         }
         
-        let written = file.write(content.unwrap().as_bytes());
+        let written = fs::write(path, content.unwrap().as_bytes());
         if written.is_err() {
             return Err(ConfigError::Io(written.err().unwrap()));
         }
@@ -72,7 +81,7 @@ impl Config {
 
 pub struct ConfigFile {
 
-    file: File,
+    path: String,
     config: Config
 
 }
@@ -86,37 +95,32 @@ pub enum ConfigError {
 
 impl ConfigFile {
 
-    pub fn new(file: File, config: Config) -> Self {
+    pub fn new(path: String, config: Config) -> Self {
         Self {
-            file,
+            path,
             config
         }
     }
 
-    pub fn from_path(path: &String) -> Result<Self, ConfigError> {
-        match OpenOptions::new().write(true).read(true).append(false).open(path) {
-            Ok(mut file) => {
+    pub fn from_path(path: String) -> Result<Self, ConfigError> {
+        let config_res = Config::load_from_path(&path);
 
-                let config_res = Config::load_from_file(&mut file);
-
-                if config_res.is_err() {
-                    return Err(config_res.err().unwrap());
-                }
-
-                Ok(Self {
-                    file,
-                    config: config_res.unwrap()
-                })
-            }
-
-            Err(err) => {
-                Err(ConfigError::Io(err))
-            }
+        if config_res.is_err() {
+            return Err(config_res.err().unwrap());
         }
+
+        Ok(Self {
+            path,
+            config: config_res.unwrap()
+        })
     }
 
-    pub fn file(&self) -> &File {
-        &self.file
+    pub fn get_path(&self) -> &String {
+        &self.path
+    }
+
+    pub fn set_path(&mut self, path: String) {
+        self.path = path;
     }
 
     pub fn get_config(&self) -> &Config {
@@ -128,7 +132,7 @@ impl ConfigFile {
     }
 
     pub fn reload_from_file(&mut self) -> Result<(), ConfigError> {
-        let config = Config::load_from_file(&mut self.file);
+        let config = Config::load_from_path(&self.path);
 
         if config.is_err() {
             return Err(config.err().unwrap());
@@ -139,7 +143,7 @@ impl ConfigFile {
     }
 
     pub fn save_to_file(&mut self, pretty: bool) -> Result<(), ConfigError> {
-        self.config.save_to_file(&mut self.file, pretty)
+        self.config.save_to_path(&self.path, pretty)
     }
 
 }

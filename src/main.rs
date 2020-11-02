@@ -6,14 +6,14 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod story_tablet;
-mod tablet_handler;
-mod device;
-mod config;
-mod command;
-mod tablet;
+pub mod story_tablet;
+pub mod tablet_handler;
+pub mod device;
+pub mod config;
+pub mod command;
+pub mod tablet;
 
-use std::{env, fs::OpenOptions};
+use std::env;
 
 use config::ConfigFile;
 use story_tablet::StoryTablet;
@@ -24,16 +24,16 @@ const PORT: u16 = 55472;
 fn main() {
     let device = serde_json::from_str::<device::Device>(device::DEVICE_CONFIG).expect("Cannot parse device config");
 
-    let config_path = env::args().nth(1).unwrap_or(String::from("config.json"));
+    let config_path = env::args().nth(1).unwrap_or(String::from(DEFAULT_CONFIG));
 
     let default_config = config::Config::load_from_content(config::DEFAULT_CONFIG).expect("Cannot load default config. This should not happen");
 
     println!("Using {} as config", config_path.as_str());
-    let mut config_file = match ConfigFile::from_path(&config_path) {
+    let mut config_file = match ConfigFile::from_path(config_path.clone()) {
         Err(err) => {
             println!("Error while reading config {:?}. Proceeding with default", err);
             ConfigFile::new(
-                OpenOptions::new().read(true).write(true).append(false).create(true).open(DEFAULT_CONFIG).expect("Cannot create file for default config"),
+                config_path,
                 default_config
             )
         }

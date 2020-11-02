@@ -9,44 +9,6 @@
       "mode": "Disabled"
     },
     {
-      "mode": "Disabled"
-    }
-  ],
-  "mapping": {
-    "x": 0,
-    "y": 0,
-    "width": 15200,
-    "height": 9500
-  },
-  "screen": {
-    "x": 0,
-    "y": 0,
-    "width": 1920,
-    "height": 1080
-  },
-  "matrix": [
-    1.0,
-    0.0,
-    0.0,
-    1.0
-  ]
-}     "x": 0,
-        "y": 0,
-        "width": 1920,
-        "height": 1080
-    },
-    "matrix": [1, 0, 0, 1]
-}{
-  "hover_enabled": true,
-  "buttons": [
-    {
-      "mode": "Mouse",
-      "button": "Left"
-    },
-    {
-      "mode": "Disabled"
-    },
-    {
       "mode": "Mouse",
       "button": "Left"
     }
