@@ -13,7 +13,7 @@ mod config;
 mod command;
 mod tablet;
 
-use std::{env, fs::{self, OpenOptions}};
+use std::{env, fs::OpenOptions};
 
 use config::ConfigFile;
 use story_tablet::StoryTablet;
@@ -33,7 +33,7 @@ fn main() {
         Err(err) => {
             println!("Error while reading config {:?}. Proceeding with default", err);
             ConfigFile::new(
-                OpenOptions::new().read(true).write(true).create(true).open(DEFAULT_CONFIG).expect("Cannot create file for default config"),
+                OpenOptions::new().read(true).write(true).append(false).create(true).open(DEFAULT_CONFIG).expect("Cannot create file for default config"),
                 default_config
             )
         }

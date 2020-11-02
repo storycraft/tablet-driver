@@ -4,7 +4,7 @@
  * Copyright (c) storycraft. Licensed under the MIT Licence.
  */
 
-use std::{fs::File, fs::{self, OpenOptions}, io, io::Read, path::PathBuf, io::Write};
+use std::{fs::File, fs::OpenOptions, io, io::Read, io::Write};
 
 use enigo::{Key, MouseButton};
 use serde::{Deserialize, Serialize};
@@ -94,7 +94,7 @@ impl ConfigFile {
     }
 
     pub fn from_path(path: &String) -> Result<Self, ConfigError> {
-        match OpenOptions::new().write(true).read(true).open(path) {
+        match OpenOptions::new().write(true).read(true).append(false).open(path) {
             Ok(mut file) => {
 
                 let config_res = Config::load_from_file(&mut file);
