@@ -13,7 +13,7 @@ pub use shared_data::SharedData;
 use tungstenite::{HandshakeError, Message, WebSocket, server};
 
 use std::{io, net::TcpListener, net::TcpStream, sync::Arc, sync::RwLock, thread::JoinHandle, net::SocketAddr, thread, time::Duration};
-use crate::{command::ReqCommands, command::ResCommand, command::ResCommands, config::Config, command::ReqCommand, device, tablet_handler::TabletHandler};
+use crate::{config::ConfigFile, command::ReqCommand, command::ReqCommands, command::ResCommand, command::ResCommands, device, tablet_handler::TabletHandler};
 
 #[derive(Debug)]
 pub enum StoryTabletError {
@@ -34,8 +34,8 @@ pub struct StoryTablet {
 
 impl StoryTablet {
 
-    pub fn new(port: u16, device: device::Device, config: Config) -> Result<Self, StoryTabletError> {
-        let shared_data = Arc::new(RwLock::new(SharedData::new(device, config)));
+    pub fn new(port: u16, device: device::Device, config_file: ConfigFile) -> Result<Self, StoryTabletError> {
+        let shared_data = Arc::new(RwLock::new(SharedData::new(device, config_file)));
 
         Ok(Self {
             server: TcpListener::bind(("127.0.0.1", port)).unwrap(),
@@ -182,13 +182,25 @@ impl StoryTablet {
     fn handle_command(&mut self, socket: &mut WebSocket<TcpStream>, command: ReqCommand) {
         match command.data {
             ReqCommands::GetConfig { } => {
-                Self::send_response(socket, ResCommand { id: command.id, data: ResCommands::GetConfig { config: self.shared.read().unwrap().get_config().clone() } });
+                Self::send_response(socket, ResCommand { id: command.id, data: ResCommands::GetConfig { config: self.shared.read().unwrap().config().clone() } });
             }
 
             ReqCommands::UpdateConfig { config } => {
-                self.shared.write().unwrap().set_config(config);
-                println!("Config updated");
-                Self::send_response(socket, ResCommand { id: command.id, data: ResCommands::UpdateConfig { updated: true } });
+                let mut shared = self.shared.write().unwrap();
+                let config_file = shared.get_config_file_mut();
+
+                config_file.set_config(config);
+                let write_res = config_file.save_to_file(true);
+
+                let mut updated = false;
+                if write_res.is_err() {
+                    println!("Error while writing config: {:?}", write_res.err().unwrap());
+                } else {
+                    println!("Config updated");
+                    updated = true;
+                }
+
+                Self::send_response(socket, ResCommand { id: command.id, data: ResCommands::UpdateConfig { updated } });
             }
 
             ReqCommands::GetStatus { } => {

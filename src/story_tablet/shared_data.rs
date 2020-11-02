@@ -1,4 +1,4 @@
-use crate::{config, device};
+use crate::{config::{Config, ConfigFile}, device::Device};
 
 /*
  * Created on Wed Oct 28 2020
@@ -8,33 +8,41 @@ use crate::{config, device};
 
 pub struct SharedData {
 
-    device: device::Device,
-    config: config::Config
+    device: Device,
+    config_file: ConfigFile
 
 }
 
 impl SharedData {
 
     pub fn new(
-        device: device::Device,
-        config: config::Config
+        device: Device,
+        config_file: ConfigFile
     ) -> Self {
         Self {
             device,
-            config: config
+            config_file
         }
     }
 
-    pub fn device(&self) -> &device::Device {
+    pub fn device(&self) -> &Device {
         &self.device
     }
 
-    pub fn get_config(&self) -> &config::Config {
-        &self.config
+    pub fn get_config_file(&self) -> &ConfigFile {
+        &self.config_file
     }
 
-    pub fn set_config(&mut self, config: config::Config) {
-        self.config = config;
+    pub fn get_config_file_mut(&mut self) -> &mut ConfigFile {
+        &mut self.config_file
+    }
+
+    pub fn config(&self) -> &Config {
+        self.config_file.get_config()
+    }
+
+    pub fn set_config_file(&mut self, config: ConfigFile) {
+        self.config_file = config;
     }
 
 }

@@ -217,7 +217,7 @@ impl TabletHandler {
 
         // println!("{:?}", state);
     
-        let config = shared.get_config();
+        let config = shared.config();
 
         if (state.inited || state.hovering) && config.hover_enabled || state.buttons[0] {
             let x = ((state.pos.0 as f32 - config.mapping.x as f32).max(0.0) / config.mapping.width as f32).min(1.0) * config.screen.width as f32;

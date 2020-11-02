@@ -13,16 +13,41 @@ mod config;
 mod command;
 mod tablet;
 
-use std::{env, fs::File, path::PathBuf, fs, io::Read};
+use std::{env, fs::{self, OpenOptions}};
 
+use config::ConfigFile;
 use story_tablet::StoryTablet;
 
+const DEFAULT_CONFIG: &str = "config.json";
 const PORT: u16 = 55472;
 
 fn main() {
     let device = serde_json::from_str::<device::Device>(device::DEVICE_CONFIG).expect("Cannot parse device config");
 
-    let tablet = StoryTablet::new(PORT, device, load_config(env::args().nth(1)));
+    let config_path = env::args().nth(1).unwrap_or(String::from("config.json"));
+
+    let default_config = config::Config::load_from_content(config::DEFAULT_CONFIG).expect("Cannot load default config. This should not happen");
+
+    println!("Using {} as config", config_path.as_str());
+    let mut config_file = match ConfigFile::from_path(&config_path) {
+        Err(err) => {
+            println!("Error while reading config {:?}. Proceeding with default", err);
+            ConfigFile::new(
+                OpenOptions::new().read(true).write(true).create(true).open(DEFAULT_CONFIG).expect("Cannot create file for default config"),
+                default_config
+            )
+        }
+
+        Ok(loaded_config_file) => {
+            loaded_config_file
+        }
+    };
+    let write_res = config_file.save_to_file(true);
+    if write_res.is_err() {
+        println!("Cannot save config. {:?}", write_res.err().unwrap());
+    }
+
+    let tablet = StoryTablet::new(PORT, device, config_file);
 
     if tablet.is_err() {
         panic!("Cannot initalize driver {:?}", tablet.err());
@@ -36,27 +61,5 @@ fn main() {
         Err(err) => {
             panic!("Cannot start driver {:?}", err);
         }
-    }
-}
-
-fn load_config(config_path: Option<String>) -> config::Config {
-    if config_path.is_some() {
-        let config_path = config_path.unwrap();
-
-        let mut file = File::open(fs::canonicalize(PathBuf::from(config_path.clone())).unwrap()).expect("Cannot find config file");
-        let mut contents = String::new();
-
-        if file.metadata().unwrap().len() > 1048576 {
-            println!("Config file is too big");
-            return load_config(None);
-        }
-
-        println!("Using {} as config", config_path);
-        file.read_to_string(&mut contents).expect("Cannot read file");
-
-        serde_json::from_str::<config::Config>(contents.as_str()).expect("Cannot parse config")
-    } else {
-        println!("Config not supplied. Proceeding with default");
-        serde_json::from_str::<config::Config>(config::DEFAULT_CONFIG).expect("Cannot parse config")
     }
 }

@@ -1,15 +1,16 @@
 {
     "hover_enabled": true,
     "buttons": [
-        {
+	    {
             "mode": "Mouse",
             "button": "Left"
         },
-        {
+		{
             "mode": "Disabled"
         },
         {
-            "mode": "Disabled"
+            "mode": "Mouse",
+            "button": "Left"
         }
     ],
     "mapping": {
@@ -25,4 +26,37 @@
         "height": 1080
     },
     "matrix": [1, 0, 0, 1]
+}{
+  "hover_enabled": true,
+  "buttons": [
+    {
+      "mode": "Mouse",
+      "button": "Left"
+    },
+    {
+      "mode": "Disabled"
+    },
+    {
+      "mode": "Mouse",
+      "button": "Left"
+    }
+  ],
+  "mapping": {
+    "x": 0,
+    "y": 1200,
+    "width": 9600,
+    "height": 5400
+  },
+  "screen": {
+    "x": 0,
+    "y": 0,
+    "width": 1920,
+    "height": 1080
+  },
+  "matrix": [
+    1.0,
+    0.0,
+    0.0,
+    1.0
+  ]
 }
