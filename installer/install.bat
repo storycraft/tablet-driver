@@ -14,8 +14,10 @@ if not exist %INSTALL_PATH% (
     exit
 ) else (
     tasklist | find /i "%EXE_NAME%" && taskkill /f /im "%EXE_NAME%"
+	if exist %INSTALL_PATH%\%CONFIG_NAME% echo Updating driver..
     copy /B %EXE_NAME% %INSTALL_PATH%
-    copy /B %CONFIG_NAME% %INSTALL_PATH%
+	
+	if not exist %INSTALL_PATH%\%CONFIG_NAME% copy /B %CONFIG_NAME% %INSTALL_PATH%
 )
 
 echo Configuring..

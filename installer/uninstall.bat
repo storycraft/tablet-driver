@@ -11,10 +11,7 @@ if not exist %INSTALL_PATH% (
     echo Uninstalling..
     tasklist | find /i "%EXE_NAME%" && taskkill /f /im "%EXE_NAME%"
 	
-    del /q /f %INSTALL_PATH%\%EXE_NAME%
-    del /q /f %INSTALL_PATH%\%CONFIG_NAME%
-	cd ..
-	rmdir /q %INSTALL_PATH%
+	rmdir /q /s %INSTALL_PATH%
 	reg delete HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run /v StoryTabletDriver /f
 	
 	echo Driver uninstalled
