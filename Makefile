@@ -1,3 +1,5 @@
+.SUFFIXES :
+
 # --------------------
 # Config
 # --------------------
@@ -31,21 +33,33 @@ MKDIR = mkdir
 CP = cp
 RM = rm
 
-
-
-package : $(PACKAGE_DIR) $(EXECUTABLE_DIST) $(SCRIPT_DIST)
+package : .print_config $(PACKAGE_DIR) $(EXECUTABLE_DIST) $(SCRIPT_DIST)
 
 $(EXECUTABLE_DIST) : $(EXECUTABLE_SRC)
-	$(CP) $< $(PACKAGE_DIR)
+	@echo 'Copying $< to $@'
+	@$(CP) $< $(PACKAGE_DIR)
 
 $(EXECUTABLE_SRC) :
-	$(RS) build $(RS_BUILD_OPT)
+	@echo Building executable..
+	@$(RS) build $(RS_BUILD_OPT)
 	
 $(PACKAGE_DIR) :
-	$(MKDIR) $@
+	@$(MKDIR) $@
 
 $(SCRIPT_DIST) : $(SCRIPT_SRC)
-	$(CP) -f $< $@
+	@echo 'Copying $< to $@'
+	@$(CP) -f $< $@
 
 clean :
-	$(RM) -rf $(OUT_DIR)
+	@echo Cleaning..
+	@$(RM) -rf $(OUT_DIR)
+
+
+
+.print_config :
+	@echo ========================================
+	@echo OUT_DIR = $(OUT_DIR)
+	@echo SCRIPT_DIR = $(SCRIPT_DIR)
+	@echo SCRIPTS = $(SCRIPTS)
+	@echo EXECUTABLE = $(EXECUTABLE)
+	@echo ========================================
