@@ -9,8 +9,13 @@ EXECUTABLE = story-tablet-driver.exe
 # --------------------
 # Settings
 # --------------------
+ifdef DEBUG
+BUILD_TYPE = debug
+else
+BUILD_TYPE = release
+endif
 PACKAGE_DIR := $(OUT_DIR)/out
-BIN_BUILD_DIR := $(OUT_DIR)/release
+BIN_BUILD_DIR := $(OUT_DIR)/$(BUILD_TYPE)
 
 SCRIPT_SRC := $(addprefix $(SCRIPT_DIR)/,$(SCRIPTS))
 SCRIPT_DIST := $(addprefix $(PACKAGE_DIR)/,$(SCRIPTS))
@@ -21,7 +26,7 @@ EXECUTABLE_DIST := $(addprefix $(PACKAGE_DIR)/,$(EXECUTABLE))
 # Utils
 # --------------------
 RS = cargo
-RS_BUILD_OPT = --target-dir $(OUT_DIR) --release
+RS_BUILD_OPT = --target-dir $(OUT_DIR) $(ifeq $(BUILD_TYPE) release,--release,)
 MKDIR = mkdir
 CP = cp
 RM = rm
