@@ -17,7 +17,9 @@ if not exist %INSTALL_PATH% (
 	if exist %INSTALL_PATH%\%CONFIG_NAME% echo Updating driver..
     copy /B %EXE_NAME% %INSTALL_PATH%
 	
-	if not exist %INSTALL_PATH%\%CONFIG_NAME% copy /B %CONFIG_NAME% %INSTALL_PATH%
+	if not exist %INSTALL_PATH%\%CONFIG_NAME% (
+	    if exist %CONFIG_NAME% copy /B %CONFIG_NAME% %INSTALL_PATH%
+	)
 )
 
 echo Configuring..

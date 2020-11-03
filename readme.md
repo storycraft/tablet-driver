@@ -2,7 +2,9 @@
 Custom tablet driver for CTL-472
 
 ## Build
-`cargo build`
+`make package`
+### Build requirement
+GNU binutils (Windows)
 
 ## Installation
 ### Windows
