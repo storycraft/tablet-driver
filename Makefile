@@ -33,9 +33,9 @@ MKDIR = mkdir
 CP = cp
 RM = rm
 
-package : .print_config $(PACKAGE_DIR) $(EXECUTABLE_DIST) $(SCRIPT_DIST)
+package : .print_config $(EXECUTABLE_DIST) $(SCRIPT_DIST)
 
-$(EXECUTABLE_DIST) : $(EXECUTABLE_SRC)
+$(PACKAGE_DIR)/% : $(BIN_BUILD_DIR)/% | $(PACKAGE_DIR)
 	@echo 'Copying $< to $@'
 	@$(CP) $< $(PACKAGE_DIR)
 
@@ -46,9 +46,9 @@ $(EXECUTABLE_SRC) :
 $(PACKAGE_DIR) :
 	@$(MKDIR) $@
 
-$(SCRIPT_DIST) : $(SCRIPT_SRC)
-	@echo 'Copying $< to $@'
-	@$(CP) -f $< $@
+$(PACKAGE_DIR)/% : $(SCRIPT_DIR)/%
+	@echo 'Copying $? to $@'
+	$(CP) -f $< $@
 
 clean :
 	@echo Cleaning..
