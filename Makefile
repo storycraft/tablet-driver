@@ -39,8 +39,6 @@ CP = cp
 RM = rm
 ZIP = zip
 
-A = a:a
-
 default : dist
 
 package : dist $(PACKAGE_DIST)
@@ -67,14 +65,11 @@ $(CONFIGURATOR_DIST_DIR) : $(CONFIGURATOR_DIR) | $(PACKAGE_DIR)
 	@$(CP) -rf $< $@
 
 $(PACKAGE_DIR) $(CONFIGURATOR_DIST_DIR)/% :
-	@$(MKDIR) $@
+	@$(MKDIR) -p $@
 
 clean :
 	$(info Cleaning..)
 	@$(RM) -rf $(OUT_DIR)
-	
-$(A)
-	echo a
 
 
 
