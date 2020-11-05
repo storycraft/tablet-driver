@@ -32,12 +32,14 @@ CONFIGURATOR_DIST_DIR = $(PACKAGE_DIR)/$(CONFIGURATOR_DIR)
 # Utils
 # --------------------
 RS = cargo
-RS_BUILD_OPT = --target-dir $(OUT_DIR) $(ifeq $(BUILD_TYPE) release,--release,)
+RS_BUILD_OPT = --target-dir $(OUT_DIR) $(if ifeq $(BUILD_TYPE) release,--release,)
 MKDIR = mkdir
 CD = cd
 CP = cp
 RM = rm
 ZIP = zip
+
+A = a:a
 
 default : dist
 
@@ -70,14 +72,18 @@ $(PACKAGE_DIR) $(CONFIGURATOR_DIST_DIR)/% :
 clean :
 	$(info Cleaning..)
 	@$(RM) -rf $(OUT_DIR)
+	
+$(A)
+	echo a
 
 
 
 .print_config :
-	@echo ========================================
-	@echo OUT_DIR = $(OUT_DIR)
-	@echo SCRIPT_DIR = $(SCRIPT_DIR)
-	@echo CONFIGURATOR_DIR = $(CONFIGURATOR_DIR)
-	@echo SCRIPTS = $(SCRIPTS)
-	@echo EXECUTABLE = $(EXECUTABLE)
-	@echo ========================================
+	$(info ========================================)
+	$(info OUT_DIR = $(OUT_DIR))
+	$(info BUILD_TYPE = $(BUILD_TYPE))
+	$(info SCRIPT_DIR = $(SCRIPT_DIR))
+	$(info CONFIGURATOR_DIR = $(CONFIGURATOR_DIR))
+	$(info SCRIPTS = $(SCRIPTS))
+	$(info EXECUTABLE = $(EXECUTABLE))
+	$(info ========================================)
