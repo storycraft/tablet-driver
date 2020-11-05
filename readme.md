@@ -9,13 +9,13 @@ GNU binutils (Windows)
 
 ## Installation
 ### Windows
-Run install.bat. Driver will autostart on boot.
+Run install.bat. config.json will be installed if exists. Driver will autostart on boot.
 Run uninstall.bat to uninstall.
 ### Others
 Auto start installer not provided. Manually add it (for now).
 
 ## Customizing
-Open `configurator/index.html` (incomplete)
+Open `configurator/index.html` (readonly, incomplete)
 
 ## Spec
 | Name     | CTL-472               |

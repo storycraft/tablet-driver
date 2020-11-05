@@ -3,30 +3,30 @@
 # --------------------
 # Config
 # --------------------
-OUT_DIR = target
-SCRIPT_DIR = scripts
-SCRIPTS = install.bat uninstall.bat
+OUT_DIR := target
+SCRIPT_DIR := scripts
+SCRIPTS := install.bat uninstall.bat
 CONFIGURATOR_DIR := configurator
-EXECUTABLE = story-tablet-driver.exe
+EXECUTABLE := story-tablet-driver.exe
 PACKAGE_NAME := package.zip
 
 # --------------------
 # Settings
 # --------------------
 ifdef DEBUG
-BUILD_TYPE = debug
+BUILD_TYPE := debug
 else
-BUILD_TYPE = release
+BUILD_TYPE := release
 endif
-PACKAGE_DIR := $(OUT_DIR)/out
-BIN_BUILD_DIR := $(OUT_DIR)/$(BUILD_TYPE)
+PACKAGE_DIR = $(OUT_DIR)/out
+BIN_BUILD_DIR = $(OUT_DIR)/$(BUILD_TYPE)
 
-SCRIPT_SRC := $(addprefix $(SCRIPT_DIR)/,$(SCRIPTS))
-SCRIPT_DIST := $(addprefix $(PACKAGE_DIR)/,$(SCRIPTS))
-EXECUTABLE_SRC := $(addprefix $(BIN_BUILD_DIR)/,$(EXECUTABLE))
-EXECUTABLE_DIST := $(addprefix $(PACKAGE_DIR)/,$(EXECUTABLE))
-PACKAGE_DIST := $(PACKAGE_DIR)/$(PACKAGE_NAME)
-CONFIGURATOR_DIST_DIR := $(PACKAGE_DIR)/$(CONFIGURATOR_DIR)
+SCRIPT_SRC = $(addprefix $(SCRIPT_DIR)/,$(SCRIPTS))
+SCRIPT_DIST = $(addprefix $(PACKAGE_DIR)/,$(SCRIPTS))
+EXECUTABLE_SRC = $(addprefix $(BIN_BUILD_DIR)/,$(EXECUTABLE))
+EXECUTABLE_DIST = $(addprefix $(PACKAGE_DIR)/,$(EXECUTABLE))
+PACKAGE_DIST = $(PACKAGE_DIR)/$(PACKAGE_NAME)
+CONFIGURATOR_DIST_DIR = $(PACKAGE_DIR)/$(CONFIGURATOR_DIR)
 
 # --------------------
 # Utils
@@ -48,7 +48,7 @@ dist : .print_config $(EXECUTABLE_DIST) $(SCRIPT_DIST) $(CONFIGURATOR_DIST_DIR)
 $(PACKAGE_DIST) : dist
 	@$(CD) $(PACKAGE_DIR) && $(ZIP) $(PACKAGE_NAME) -ur ./
 	
-$(EXECUTABLE_SRC)/$(EXECUTABLE) :
+$(EXECUTABLE_SRC) :
 	$(info Building executable..)
 	@$(RS) build $(RS_BUILD_OPT)
 
