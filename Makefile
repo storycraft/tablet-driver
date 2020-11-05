@@ -62,7 +62,7 @@ $(PACKAGE_DIR)/% : $(SCRIPT_DIR)/% | $(PACKAGE_DIR)
 	$(info Copying $? to $@)
 	@$(CP) -f $< $@
 
-$(CONFIGURATOR_DIST_DIR) : $(CONFIGURATOR_DIR)
+$(CONFIGURATOR_DIST_DIR) : $(CONFIGURATOR_DIR) | $(PACKAGE_DIR)
 	$(info Copying $? to $@)
 	@$(CP) -rf $< $@
 
