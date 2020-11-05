@@ -35,7 +35,6 @@ RS = cargo
 RS_BUILD_OPT = --target-dir $(OUT_DIR) $(ifeq $(BUILD_TYPE) release,--release,)
 MKDIR = mkdir
 CD = cd
-LS = ls
 CP = cp
 RM = rm
 ZIP = zip
