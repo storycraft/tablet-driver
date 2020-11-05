@@ -6,6 +6,7 @@
 OUT_DIR = target
 SCRIPT_DIR = scripts
 SCRIPTS = install.bat uninstall.bat
+CONFIGURATOR_DIR := configurator
 EXECUTABLE = story-tablet-driver.exe
 PACKAGE_NAME := package.zip
 
@@ -25,6 +26,7 @@ SCRIPT_DIST := $(addprefix $(PACKAGE_DIR)/,$(SCRIPTS))
 EXECUTABLE_SRC := $(addprefix $(BIN_BUILD_DIR)/,$(EXECUTABLE))
 EXECUTABLE_DIST := $(addprefix $(PACKAGE_DIR)/,$(EXECUTABLE))
 PACKAGE_DIST := $(PACKAGE_DIR)/$(PACKAGE_NAME)
+CONFIGURATOR_DIST_DIR := $(PACKAGE_DIR)/$(CONFIGURATOR_DIR)
 
 # --------------------
 # Utils
@@ -33,6 +35,7 @@ RS = cargo
 RS_BUILD_OPT = --target-dir $(OUT_DIR) $(ifeq $(BUILD_TYPE) release,--release,)
 MKDIR = mkdir
 CD = cd
+LS = ls
 CP = cp
 RM = rm
 ZIP = zip
@@ -41,7 +44,7 @@ default : dist
 
 package : dist $(PACKAGE_DIST)
 
-dist : .print_config $(EXECUTABLE_DIST) $(SCRIPT_DIST)
+dist : .print_config $(EXECUTABLE_DIST) $(SCRIPT_DIST) $(CONFIGURATOR_DIST_DIR)
 
 $(PACKAGE_DIST) : dist
 	@$(CD) $(PACKAGE_DIR) && $(ZIP) $(PACKAGE_NAME) -ur ./
@@ -58,7 +61,11 @@ $(PACKAGE_DIR)/% : $(SCRIPT_DIR)/% | $(PACKAGE_DIR)
 	$(info Copying $? to $@)
 	@$(CP) -f $< $@
 
-$(PACKAGE_DIR) :
+$(CONFIGURATOR_DIST_DIR) : $(CONFIGURATOR_DIR)
+	$(info Copying $? to $@)
+	@$(CP) -rf $< $@
+
+$(PACKAGE_DIR) $(CONFIGURATOR_DIST_DIR)/% :
 	@$(MKDIR) $@
 
 clean :
@@ -71,6 +78,7 @@ clean :
 	@echo ========================================
 	@echo OUT_DIR = $(OUT_DIR)
 	@echo SCRIPT_DIR = $(SCRIPT_DIR)
+	@echo CONFIGURATOR_DIR = $(CONFIGURATOR_DIR)
 	@echo SCRIPTS = $(SCRIPTS)
 	@echo EXECUTABLE = $(EXECUTABLE)
 	@echo ========================================
