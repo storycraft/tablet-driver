@@ -46,6 +46,10 @@ pub enum ReqCommands {
         config: Config
     },
 
+    SaveConfig {
+        force_write: bool
+    },
+
 }
 
 // Server to client
@@ -67,6 +71,11 @@ pub enum ResCommands {
 
     UpdateConfig {
         updated: bool
+    },
+
+    SaveConfig {
+        saved: bool,
+        file_changed: bool
     },
 
 }

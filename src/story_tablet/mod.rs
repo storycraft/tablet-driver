@@ -190,17 +190,30 @@ impl StoryTablet {
                 let config_file = shared.get_config_file_mut();
 
                 config_file.set_config(config);
-                let write_res = config_file.save_to_file(true);
+                println!("Config updated");
 
-                let mut updated = false;
-                if write_res.is_err() {
-                    println!("Error while writing config: {:?}", write_res.err().unwrap());
-                } else {
-                    println!("Config updated");
-                    updated = true;
+                Self::send_response(socket, ResCommand { id: command.id, data: ResCommands::UpdateConfig { updated: true } });
+            }
+
+            ReqCommands::SaveConfig { force_write } => {
+                let mut shared = self.shared.write().unwrap();
+                let config_file = shared.get_config_file_mut();
+
+                let mut saved = true;
+                let mut file_changed = false;
+                if force_write || config_file.changed() {
+                    let write_res = config_file.save_to_file(true);
+
+                    if write_res.is_err() {
+                        saved = false;
+                        println!("Error while writing config: {:?}", write_res.err().unwrap());
+                    } else {
+                        file_changed = true;
+                        println!("Config saved");
+                    }
                 }
 
-                Self::send_response(socket, ResCommand { id: command.id, data: ResCommands::UpdateConfig { updated } });
+                Self::send_response(socket, ResCommand { id: command.id, data: ResCommands::SaveConfig { saved, file_changed } });
             }
 
             ReqCommands::GetStatus { } => {

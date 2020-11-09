@@ -82,6 +82,7 @@ impl Config {
 pub struct ConfigFile {
 
     path: String,
+    changed: bool,
     config: Config
 
 }
@@ -98,6 +99,7 @@ impl ConfigFile {
     pub fn new(path: String, config: Config) -> Self {
         Self {
             path,
+            changed: true,
             config
         }
     }
@@ -111,6 +113,7 @@ impl ConfigFile {
 
         Ok(Self {
             path,
+            changed: false,
             config: config_res.unwrap()
         })
     }
@@ -129,6 +132,14 @@ impl ConfigFile {
 
     pub fn set_config(&mut self, config: Config) {
         self.config = config;
+
+        if !self.changed {
+            self.changed = true;
+        }
+    }
+
+    pub fn changed(&self) -> bool {
+        self.changed
     }
 
     pub fn reload_from_file(&mut self) -> Result<(), ConfigError> {
