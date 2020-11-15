@@ -7,7 +7,10 @@ OUT_DIR := target
 SCRIPT_DIR := scripts
 SCRIPTS := install.bat uninstall.bat
 CONFIGURATOR_DIR := configurator
+EXECUTABLE := story-tablet-driver
+ifeq ($(OS),Windows_NT)
 EXECUTABLE := story-tablet-driver.exe
+endif
 PACKAGE_NAME := package.zip
 
 # --------------------
@@ -52,7 +55,7 @@ $(EXECUTABLE_SRC) :
 	$(info Building executable..)
 	@$(RS) build $(RS_BUILD_OPT)
 
-$(PACKAGE_DIR)/%.exe : $(BIN_BUILD_DIR)/%.exe | $(PACKAGE_DIR)
+$(PACKAGE_DIR)/% : $(BIN_BUILD_DIR)/% | $(PACKAGE_DIR)
 	$(info Copying $< to $@)
 	@$(CP) -f $< $@
 
@@ -64,7 +67,10 @@ $(CONFIGURATOR_DIST_DIR) : $(CONFIGURATOR_DIR) | $(PACKAGE_DIR)
 	$(info Copying $? to $@)
 	@$(CP) -rf $< $@
 
-$(PACKAGE_DIR) $(CONFIGURATOR_DIST_DIR)/% :
+$(PACKAGE_DIR) :
+	@$(MKDIR) -p $@
+	
+$(CONFIGURATOR_DIST_DIR)/% :
 	@$(MKDIR) -p $@
 
 clean :
