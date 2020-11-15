@@ -5,7 +5,11 @@ Custom tablet driver for CTL-472
 `make dist`  
 artifacts generate at target/out
 ### Build requirement
-GNU binutils (Windows)
+#### Windows
+GNU binutils
+#### Linux
+libusb
+xdotool
 
 ## Installation
 ### Windows

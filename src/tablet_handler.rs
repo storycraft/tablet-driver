@@ -127,11 +127,11 @@ impl TabletHandler {
                     hid_api.refresh_devices().expect("Cannot refresh devices");
         
                     let info = hid_api.device_list().filter(
-                        |item| 
+                        |item|
                         item.vendor_id() == device.info.vendor &&
                         item.product_id() == device.info.product &&
-                        item.usage() == device.info.usage &&
-                        item.usage_page() == device.info.usage_page
+                        (item.usage() == 0 || item.usage() == device.info.usage) &&
+                        (item.usage_page() == 0 || item.usage_page() == device.info.usage_page)
                     ).next();
 
                     match info {
